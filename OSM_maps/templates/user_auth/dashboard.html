@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="/static/OSM_maps/style.css">
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+</head>
+<body>
+    <h2>Welcome, {{ user.username }}!</h2>
+    <a href="{% url 'logout' %}">Logout</a>
+    <!-- Include map functionality -->
+<h1>Find Pharmacies in a Location</h1>
+<form id="locationForm">
+    <input type="text" id="locationInput" placeholder="Enter location (e.g., Bhopal)">
+    <button type="submit">Search</button>
+</form>
+<div id="map"></div>
+<h2>Pharmacies:</h2>
+<ul id="pharmacyList"></ul>
+
+<script>
+    let map = L.map('map').setView([20, 77], 5); // Default map view
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    document.getElementById('locationForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        let location = document.getElementById('locationInput').value;
+        let pharmacyList = document.getElementById('pharmacyList');
+        pharmacyList.innerHTML = '';  // Clear previous results
+
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${location}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.length > 0) {
+                    let lat = data[0].lat;
+                    let lon = data[0].lon;
+                    map.setView([lat, lon], 13);
+                    L.marker([lat, lon]).addTo(map)
+                      .bindPopup(`<b>${location}</b>`).openPopup();
+
+                    // Fetch pharmacies using Overpass API
+                    fetch(`https://overpass-api.de/api/interpreter?data=[out:json];node["amenity"="pharmacy"](around:5000,${lat},${lon});out;`)
+                        .then(res => res.json())
+                        .then(osmData => {
+                            if (osmData.elements.length === 0) {
+                                pharmacyList.innerHTML = "<li>No pharmacies found.</li>";
+                            } else {
+                                osmData.elements.forEach(pharmacy => {
+                                    let name = pharmacy.tags.name || "Unnamed Pharmacy";
+                                    let pLat = pharmacy.lat;
+                                    let pLon = pharmacy.lon;
+                                    
+                                    // Add marker for each pharmacy
+                                    L.marker([pLat, pLon]).addTo(map)
+                                        .bindPopup(`<b>${name}</b>`);
+
+                                    // Add to list
+                                    let li = document.createElement("li");
+                                    li.textContent = name;
+                                    pharmacyList.appendChild(li);
+                                });
+                            }
+                        })
+                        .catch(err => console.error("Error fetching pharmacies:", err));
+
+                    // Fetch pharmacies from Django database
+                    fetch('/maps/api/pharmacies/')
+                        .then(response => response.json())
+                        .then(data => {
+                            data.pharmacies.forEach(pharmacy => {
+                                L.marker([pharmacy.lat, pharmacy.lon]).addTo(map)
+                                    .bindPopup(`<b>${pharmacy.name}</b><br>${pharmacy.address}`);
+
+                                let li = document.createElement("li");
+                                li.textContent = `${pharmacy.name} - ${pharmacy.address}`;
+                                pharmacyList.appendChild(li);
+                            });
+                        })
+                        .catch(error => console.error("Error loading pharmacies from Django:", error));
+                } else {
+                    alert("Location not found");
+                }
+            });
+    });
+</script>
+</body>
+</html>
