@@ -54,7 +54,7 @@ MIDDLEWARE = [
 # Added MAnually
 # Use database for session storage
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
-SESSION_COOKIE_AGE = 86400  # 1 day
+SESSION_COOKIE_AGE = 1800  # 30 minutes
 
 ROOT_URLCONF = 'Maps.urls'
 

@@ -12,39 +12,11 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, logout, authenticate
 
 
-
 @login_required
 def map_view(request):
     search_history = request.session.get("search_history", [])
     return render(request, "user_auth/dashboard.html", {"user": request.user, "search_history": search_history})
 
-def get_client_ip(request):
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0]
-    else:
-        ip = request.META.get('REMOTE_ADDR')
-    return ip
-
-
-# Before 
-# @login_required
-# def dashboard_view(request):
-#     user = User.objects.get(username=request.user.username)
-#     last_login = user.last_login
-    
-#     # Ensure search history persists across sessions
-#     if "search_history" not in request.session:
-#         request.session["search_history"] = []
-        
-#     search_history = request.session["search_history"]
-    
-#     return render(request, "user_auth/dashboard.html", {
-#         "user": request.user,
-#         "last_login": last_login,
-#         "search_history": search_history,
-#     })
-#After
 @login_required
 def dashboard_view(request):
     user = request.user
@@ -54,12 +26,11 @@ def dashboard_view(request):
     search_history = SearchHistory.objects.filter(user=user).order_by('-timestamp')[:10]
 
     # Retrieve last login from session
-    last_login = request.session.get("last_login", "First login")
+    last_login = request.session.get("last_login", "No login history")
 
     return render(request, "user_auth/dashboard.html", {
         "user": user,
         "last_login": last_login,
-        "login_history": login_history,
         "search_history": search_history,
     })
 
@@ -127,7 +98,6 @@ def login_view(request):
             login_entry = UserLoginHistory.objects.create(
                 user=user,
                 login_timestamp=timezone.now(),
-                ip_address=get_client_ip(request),
             )
 
             # Store last login in session

@@ -15,22 +15,19 @@
         <a href="{% url 'logout' %}"><button>Logout</button></a>
     </header>
 
-    <!-- Login History Section -->
+    <!-- Login History Section
     <section>
         <h3>Login History:</h3>
         <ul>
             {% for login_entry in login_history %}
                 <li>
-                    {{ login_entry.login_timestamp }} 
-                    {% if login_entry.ip_address %}
-                        (IP: {{ login_entry.ip_address }})
-                    {% endif %}
+                    {{ login_entry.login_timestamp }}
                 </li>
             {% empty %}
                 <li>No login history yet.</li>
             {% endfor %}
         </ul>
-    </section>
+    </section> -->
 
     <!-- Search Section -->
     <section>
