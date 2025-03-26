@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSM Pharmacy Finder</title>
+    <link rel="stylesheet" href="/static/OSM_maps/style.css">
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+    <!-- OSRM Routing -->
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+</head>
+<body>
+    <!-- User Info Section -->
+    <header>
+        <h2>Welcome, {{ user.username }}!</h2>
+        <p>Last Login: {{ last_login|default:"First login" }}</p>
+        <a href="{% url 'logout' %}"><button>Logout</button></a>
+    </header>
+
+    <!-- Login History Section
+    <section>
+        <h3>Login History:</h3>
+        <ul>
+            {% for login_entry in login_history %}
+                <li>
+                    {{ login_entry.login_timestamp }}
+                </li>
+            {% empty %}
+                <li>No login history yet.</li>
+            {% endfor %}
+        </ul>
+    </section> -->
+
+    <!-- Search Bar -->
+    <div id="search-container">
+        <input type="text" id="locationInput" placeholder="Search location...(e.g., Bhopal)", required>
+        <button id="searchBtn">🔍</button>
+    </div>
+
+    <!-- Search History Section
+    <section>
+        <h3>Search History:</h3>
+        <ul>
+            {% for item in search_history %}
+                <li>{{ item.query }} - {{ item.timestamp }}</li>
+            {% empty %}
+                <li>No search history yet.</li>
+            {% endfor %}
+        </ul>
+        <form action="{% url 'clear_search_history' %}" method="post">
+            {% csrf_token %}
+            <button type="submit">Clear Search History</button>
+        </form>
+    </section> -->
+
+    <!-- Dropdown List -->
+    <div id="dropdown-list"></div>
+
+    <!-- Pharmacy List
+    <section>
+        <h2>Pharmacies:</h2>
+        <ul id="pharmacyList"></ul>
+    </section> -->
+
+    <!-- Map Display -->
+    <section>
+        <div id="map"></div>
+    </section>
+
+    <!-- Shortcut Buttons -->
+    <div class="shortcut-buttons">
+        <button id="labBtn">🧪</button>
+        <button id="hospitalBtn">🏥</button>
+        <button id="pharmacyBtn">💊</button>
+        <button id="resetBtn">🔄</button>
+    </div>
+
+    <!-- JavaScript for Map and Search -->
+    <script src="/static/OSM_maps/script.js"></script>
+    
+</body>
+
+</html>

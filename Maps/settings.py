@@ -40,7 +40,6 @@ INSTALLED_APPS = [
     'OSM_maps',
 ]
 
-
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -51,6 +50,8 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+ROOT_URLCONF = 'Maps.urls'
+
 # Added MAnually
 # Use database for session storage
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
@@ -58,10 +59,11 @@ SESSION_COOKIE_AGE = 1800  # 30 minutes
 
 ROOT_URLCONF = 'Maps.urls'
 
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / "templates"],  # Ensure this points to the correct path
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -73,6 +75,8 @@ TEMPLATES = [
         },
     },
 ]
+
+
 
 WSGI_APPLICATION = 'Maps.wsgi.application'
 
@@ -125,9 +129,7 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 # Login url 
-
 LOGIN_URL = "/"
-
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
