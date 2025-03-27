@@ -1,166 +1,305 @@
-let map = L.map('map').setView([20.5937, 78.9629], 5); // Default map view
+// Initialize Map
+let map = L.map('map').setView([20.5937, 78.9629], 5);
 let userLocation = null;
 let routeControl = null;
+let markers = [];
+let locationMarker = null;
+let devicelocation = null;
 
-var customIcon = L.icon({
+// Custom Icons
+const defaultIcon = L.icon({
     iconUrl: '/static/elements/penguin.svg',
-    iconSize: [42, 100], 
-    iconAnchor: [20, 94], 
+    iconSize: [42, 100],
+    iconAnchor: [20, 94],
     popupAnchor: [-11, -76],
 });
 
-var pharmacyIcon = L.icon({
+const pharmacyIcon = L.icon({
     iconUrl: '/static/elements/Pharmacy.png',
-    iconSize: [150, 150],
-    iconAnchor: [21, 50],
-    popupAnchor: [0, -40]
+    iconSize: [120, 120],
+    iconAnchor: [30, 30],
+    popupAnchor: [0, -50]
 });
 
-var doctorIcon = L.icon({
-    iconUrl: '/static/elements/Clinic.png',
-    iconSize: [42, 42],
-    iconAnchor: [21, 42],
-    popupAnchor: [0, -40]
-});
-
-var hospitalIcon = L.icon({
-    iconUrl: '/static/elements/Hospital.png',
-    iconSize: [42, 42],
-    iconAnchor: [21, 42],
-    popupAnchor: [0, -40]
-});
-
-var pathoLabIcon = L.icon({
+const labIcon = L.icon({
     iconUrl: '/static/elements/Patho_lab.png',
-    iconSize: [42, 42],
-    iconAnchor: [21, 42],
-    popupAnchor: [0, -40]
+    iconSize: [120, 120],
+    iconAnchor: [15, 30],
+    popupAnchor: [0, -25]
 });
 
+const hospitalIcon = L.icon({
+    iconUrl: '/static/elements/Hospital.png',
+    iconSize: [120, 120],
+    iconAnchor: [15, 30],
+    popupAnchor: [0, -25]
+});
+
+// Add Map Tiles
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
-// Check if Geolocation is available
+// Locate User Position
 if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(function (position) {
-        var lat = position.coords.latitude;
-        var lon = position.coords.longitude;
-
-        // Set view to user's location
-        map.setView([lat, lon], 13);
-        // Update the userLocation variable
-        userLocation = [lat, lon];
-
-        // Add a marker at the user's location
-        L.marker([lat, lon],{ icon: customIcon }).addTo(map)
+    navigator.geolocation.getCurrentPosition(position => {
+        userLocation = [position.coords.latitude, position.coords.longitude];
+        devicelocation = userLocation;
+        map.setView(userLocation, 13);
+        L.marker(userLocation, { icon: defaultIcon }).addTo(map)
             .bindPopup("You are here!")
             .openPopup();
-    }, function (error) {
-        console.log("Geolocation error: " + error.message);
-    });
+    }, error => console.warn("Geolocation error:", error.message));
 } else {
-    alert("Geolocation is not supported by this browser.");
+    alert("Geolocation not supported.");
 }
 
+// Search & Autocomplete
+function setupSearch() {
+    const input = document.getElementById("locationInput");
+    const searchBtn = document.getElementById("searchBtn");
+    const autocompleteList = document.getElementById("autocompleteList");
+    
 
-document.getElementById('locationForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    let location = document.getElementById('locationInput').value;
-    let pharmacyList = document.getElementById('pharmacyList');
-    pharmacyList.innerHTML = ''; // Clear the list
+    if (!input || !searchBtn || !autocompleteList) {
+        console.error("❌ Search elements not found!");
+        return;
+    }
 
-    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${location}`)
+    // Pressing "Enter" triggers search
+    input.addEventListener("keyup", function (event) {
+        if (event.key === "Enter") searchLocation(input.value);
+        autocompleteList.style.display = "none";
+    });
+
+    // Clicking the search button triggers search
+    searchBtn.addEventListener("click", function () {
+        searchLocation(input.value);
+        autocompleteList.style.display = "none";
+    });
+
+    // Autocomplete logic
+    input.addEventListener("input", function () {
+        const query = input.value.trim();
+        if (query.length < 2) {
+            autocompleteList.style.display = "none";
+            return;
+        }
+        
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`)
+            .then(response => response.json())
+            .then(data => {
+                autocompleteList.innerHTML = "";
+                if (data.length > 0) {
+                    data.forEach(place => {
+                        const item = document.createElement("div");
+                        item.textContent = place.display_name;
+                        item.dataset.lat = place.lat;
+                        item.dataset.lon = place.lon;
+                        item.addEventListener("click", function () {
+                            input.value = this.textContent;
+                            placeMarkerAndMove(this.dataset.lat, this.dataset.lon);
+                            autocompleteList.style.display = "none";
+                        });
+                        autocompleteList.appendChild(item);
+                    });
+                    autocompleteList.style.display = "block";
+                } else {
+                    autocompleteList.style.display = "none";
+                }
+            })
+            .catch(error => console.error("❌ Autocomplete error:", error));
+    });
+}
+
+function searchLocation(query) {
+    if (!query.trim()) {
+        alert("Please enter a location.");
+        return;
+    }
+
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`)
         .then(response => response.json())
         .then(data => {
             if (data.length > 0) {
-                let lat = data[0].lat;
-                let lon = data[0].lon;
-                map.setView([lat, lon], 13);
-                L.marker([lat, lon]).addTo(map).bindPopup(`<b>${location}</b>`).openPopup();
-
-                // Fetch pharmacies using Overpass API
-                return fetch(`https://overpass-api.de/api/interpreter?data=[out:json];node["amenity"="pharmacy"](around:5000,${lat},${lon});out;`);
+                placeMarkerAndMove(data[0].lat, data[0].lon);
             } else {
-                throw new Error("Location not found");
+                alert("Location not found.");
             }
         })
-        .then(res => res.json())
-        .then(osmData => {
-            if (osmData.elements.length === 0) {
-                pharmacyList.innerHTML = "<li>No pharmacies found.</li>";
-            } else {
-                osmData.elements.forEach(pharmacy => {
-                    let name = pharmacy.tags.name || "Unnamed Pharmacy";
-                    let pLat = pharmacy.lat;
-                    let pLon = pharmacy.lon;
-                    let iconType = pharmacyIcon; // Default icon
+        .catch(error => console.error("❌ Search error:", error));
+}
+
+// Place marker and move the map
+function placeMarkerAndMove(lat, lon) {
+    lat = parseFloat(lat);
+    lon = parseFloat(lon);
+
+    userLocation = [lat, lon]; // Update user location
+    moveToLocation(lat, lon);
+
+    if (locationMarker) {
+        locationMarker.setLatLng([lat, lon]); // Move existing marker
+    } else {
+        locationMarker = L.marker([lat, lon], { draggable: true }).addTo(map);
+        
+        locationMarker.on("dragend", function (event) {
+            const newPos = event.target.getLatLng();
+            userLocation = [newPos.lat, newPos.lng]; // Update user location on drag
+            console.log("📍 Marker moved to:", userLocation);
+        });
+    }
+}
+
+document.addEventListener("DOMContentLoaded", setupSearch);
+
+// Added Now
+
+document.getElementById("labBtn").addEventListener("click", function () {
+    if (userLocation) {
+        moveToLocation(userLocation[0], userLocation[1]);
+        fetchLabs(userLocation[0], userLocation[1]);
+    } else {
+        alert("User location not available");
+    }
+});
+
+document.getElementById("hospitalBtn").addEventListener("click", function () {
+    if (userLocation) {
+        moveToLocation(userLocation[0], userLocation[1]);
+        fetchHospitals(userLocation[0], userLocation[1]);
+    } else {
+        alert("User location not available");
+    }
+});
+document.getElementById("pharmacyBtn").addEventListener("click", function () {
+    if (userLocation) {
+        moveToLocation(userLocation[0], userLocation[1]);
+        fetchPharmacies(userLocation[0], userLocation[1]);
+    } else {
+        alert("User location not available");
+    }
+});
+
+document.getElementById("resetBtn").addEventListener("click", function () {
+    clearMarkers();
+    if (userLocation) {
+        moveToLocation(devicelocation[0], devicelocation[1]);
+    }
+});
+
+function moveToLocation(lat, lon) {
+    if (map) {
+        userLocation = [lat, lon];
+        map.setView([lat, lon], 14);
+    } else {
+        console.error("❌ Map is not initialized!");
+    }
+}
 
 
-                    // You'll need these for 
-                    // if (name.toLowerCase().includes("doctor")) iconType = doctorIcon;
-                    // if (name.toLowerCase().includes("hospital")) iconType = hospitalIcon;
-                    // if (name.toLowerCase().includes("patho")) iconType = pathoLabIcon;
+function fetchLabs(lat, lon) {
+    clearMarkers();
+    const query = `
+        [out:json];
+        (
+            node["amenity"="laboratory"](around:5000,${lat},${lon});
+            node["amenity"="medical_laboratory"](around:5000,${lat},${lon});
+            node["healthcare"="laboratory"](around:5000,${lat},${lon});
+            node["healthcare"="sample_collection"](around:5000,${lat},${lon});
+            node["healthcare_speciality"="blood_check"](around:5000,${lat},${lon});
+            node["healthcare_speciality"="clinical_pathology"](around:5000,${lat},${lon});
+            node["healthcare_speciality"="pathology"](around:5000,${lat},${lon});
+        );
+        out;
+    `;
+    executeOverpassQuery(query, "Lab");
+}
 
+function fetchHospitals(lat, lon) {
+    clearMarkers();
+    const query = `
+        [out:json];
+        (
+            node["amenity"="hospital"](around:5000,${lat},${lon});
+            node["amenity"="doctors"](around:5000,${lat},${lon});
+            node["amenity"="clinic"](around:5000,${lat},${lon});
+            node["healthcare"="clinic"](around:5000,${lat},${lon});
+            node["healthcare"="hospital"](around:5000,${lat},${lon});
+            node["healthcare"="doctor"](around:5000,${lat},${lon});
+            node["building"="hospital"](around:5000,${lat},${lon});
+        );
+        out;
+    `;
+    executeOverpassQuery(query, "Hospital");
+}
 
+function fetchPharmacies(lat, lon) {
+    clearMarkers();
+    const query = `
+        [out:json];
+        (
+            node["amenity"="pharmacy"](around:5000,${lat},${lon});
+            node["healthcare"="pharmacy"](around:5000,${lat},${lon});
+            node["pharmacy"="yes"](around:5000,${lat},${lon});
+            node["shop"="chemist"](around:5000,${lat},${lon});
+            node["shop"="medical_supply"](around:5000,${lat},${lon});
+            node["office"="medical"](around:5000,${lat},${lon});
+        );
+        out;
+    `;
+    executeOverpassQuery(query, "Pharmacy");
+}
 
-
-                    // Add marker for each pharmacy
-                    let marker = L.marker([pLat, pLon],{icon: iconType}).addTo(map)
-                        .bindPopup(`<b>${name}</b><br><button onclick="getDirections(${pLat}, ${pLon})">Get Directions</button>`);
-                    // L.marker([pLat, pLon]).addTo(map).bindPopup(`<b>${name}</b>`);
-
-                    // Add to list
-                    let li = document.createElement("li");
-                    li.innerHTML = `${name} <button onclick="getDirections(${pLat}, ${pLon})">Get Directions</button>`;
-                    // li.textContent = name;
-                    pharmacyList.appendChild(li);
-                });
-            }
-        })
-        .catch(err => console.error("Error fetching pharmacies:", err));
-
-    // Fetch pharmacies from Django API
-    fetch('/api/pharmacies/')
+function executeOverpassQuery(query, placeType) {
+    const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+    fetch(url)
         .then(response => response.json())
-        .then(data => {
-            data.pharmacies.forEach(pharmacy => {
-                let iconType = pharmacyIcon;
-                L.marker([pharmacy.lat, pharmacy.lon],{ icon: iconType }).addTo(map)
-                    .bindPopup(`<b>${pharmacy.name}</b><br>${pharmacy.address}<br><button onclick="getDirections(${pharmacy.lat}, ${pharmacy.lon})">Get Directions</button>`);
+        .then(osmData => {
+            if (!osmData.elements || osmData.elements.length === 0) {
+                alert(`No ${placeType}s found nearby.`);
+                return;
+            }
+            let customIcon;
+            switch (placeType) {
+                case "Lab":
+                    customIcon = labIcon;
+                    break;
+                case "Hospital":
+                    customIcon = hospitalIcon;
+                    break;
+                case "Pharmacy":
+                    customIcon = pharmacyIcon;
+                    break;
+                default:
+                    customIcon = defaultIcon;
+            }
 
-                let li = document.createElement("li");
-                li.textContent = `${pharmacy.name} - ${pharmacy.address} <button onclick="getDirections(${pharmacy.lat}, ${pharmacy.lon})">Get Directions</button>`;
-                pharmacyList.appendChild(li);
+            osmData.elements.forEach(location => {
+                let marker = L.marker([location.lat, location.lon], { icon: customIcon }).addTo(map)
+                    .bindPopup(`<b>${location.tags.name || placeType}</b>`);
+                markers.push(marker);
             });
         })
-        .catch(error => console.error("Error loading pharmacies from Django:", error));
+        .catch(err => console.error(`❌ ${placeType} fetch error:`, err));
+}
 
-    // Fetch pharmacy search results from Django
-    fetch(`/search/?query=${encodeURIComponent(location)}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.pharmacies.length === 0) {
-                alert("No pharmacies found.");
-            } else {
-                data.pharmacies.forEach(pharmacy => {
-                    L.marker([pharmacy.lat, pharmacy.lon]).addTo(map)
-                        .bindPopup(`<b>${pharmacy.name}</b><br>${pharmacy.address}`);
 
-                    let li = document.createElement("li");
-                    li.textContent = `${pharmacy.name} - ${pharmacy.address}`;
-                    pharmacyList.appendChild(li);
-                });
-            }
-        })
-        .catch(error => console.error("Error fetching pharmacies:", error));
-});
+function clearMarkers() {
+    markers.forEach(marker => map.removeLayer(marker));
+    markers = [];
+}
 
 function getDirections(destLat, destLon) {
     if (!userLocation) {
         alert("User location not found. Please enable location services.");
         return;
     }
+    clearMarkers();
+    let destinationMarker = L.marker([destLat, destLon], { icon: pharmacyIcon }).addTo(map)
+        .bindPopup("<b>Destination</b>").openPopup();
+
+    markers.push(destinationMarker);
 
     if (routeControl) {
         map.removeControl(routeControl);
@@ -172,6 +311,6 @@ function getDirections(destLat, destLon) {
             L.latLng(destLat, destLon)
         ],
         routeWhileDragging: true,
-        createMarker: function() { return null; }
+        createMarker: function () { return null; }  // Remove default Leaflet Routing markers
     }).addTo(map);
 }
