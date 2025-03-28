@@ -6,33 +6,40 @@ let markers = [];
 let locationMarker = null;
 let devicelocation = null;
 
+// Local Storage Cache
+let locationCache = {
+    hospitals: null,
+    labs: null,
+    pharmacies: null
+};
+
 // Custom Icons
 const defaultIcon = L.icon({
     iconUrl: '/static/elements/penguin.svg',
-    iconSize: [42, 100],
-    iconAnchor: [20, 94],
+    iconSize: [44, 100],
+    iconAnchor: [22, 50],
     popupAnchor: [-11, -76],
 });
 
 const pharmacyIcon = L.icon({
     iconUrl: '/static/elements/Pharmacy.png',
-    iconSize: [120, 120],
-    iconAnchor: [30, 30],
-    popupAnchor: [0, -50]
+    iconSize: [100, 100],
+    iconAnchor: [50, 50],
+    popupAnchor: [0, -20]
 });
 
 const labIcon = L.icon({
     iconUrl: '/static/elements/Patho_lab.png',
-    iconSize: [120, 120],
-    iconAnchor: [15, 30],
-    popupAnchor: [0, -25]
+    iconSize: [100, 100],
+    iconAnchor: [50, 50],
+    popupAnchor: [0, -20]
 });
 
 const hospitalIcon = L.icon({
     iconUrl: '/static/elements/Hospital.png',
-    iconSize: [120, 120],
-    iconAnchor: [15, 30],
-    popupAnchor: [0, -25]
+    iconSize: [100, 100],
+    iconAnchor: [50, 50],
+    popupAnchor: [0, -20]
 });
 
 // Add Map Tiles
@@ -184,7 +191,12 @@ document.getElementById("pharmacyBtn").addEventListener("click", function () {
 document.getElementById("resetBtn").addEventListener("click", function () {
     clearMarkers();
     if (userLocation) {
+        userLocation = devicelocation;
         moveToLocation(devicelocation[0], devicelocation[1]);
+    }
+    // Close any open sidebar
+    if (typeof closeSidebar === "function") {
+        closeSidebar();
     }
 });
 
@@ -200,6 +212,11 @@ function moveToLocation(lat, lon) {
 
 function fetchLabs(lat, lon) {
     clearMarkers();
+    if (locationCache.labs) {
+        console.log("Using cached lab data 🗄️");
+        plotCachedLocations(locationCache.labs, labIcon, "Lab");
+        return;
+    }
     const query = `
         [out:json];
         (
@@ -218,6 +235,11 @@ function fetchLabs(lat, lon) {
 
 function fetchHospitals(lat, lon) {
     clearMarkers();
+    if (locationCache.hospitals) {
+        console.log("Using cached hospital data 🗄️");
+        plotCachedLocations(locationCache.hospitals, hospitalIcon, "Hospital");
+        return;
+    }
     const query = `
         [out:json];
         (
@@ -236,6 +258,11 @@ function fetchHospitals(lat, lon) {
 
 function fetchPharmacies(lat, lon) {
     clearMarkers();
+    if (locationCache.pharmacies) {
+        console.log("Using cached pharmacy data 🗄️");
+        plotCachedLocations(locationCache.pharmacies, pharmacyIcon, "Pharmacy");
+        return;
+    }
     const query = `
         [out:json];
         (
@@ -256,36 +283,76 @@ function executeOverpassQuery(query, placeType) {
     fetch(url)
         .then(response => response.json())
         .then(osmData => {
+            // console.log("Overpass API Response:", osmData); // Debugging step
             if (!osmData.elements || osmData.elements.length === 0) {
                 alert(`No ${placeType}s found nearby.`);
                 return;
             }
-            let customIcon;
-            switch (placeType) {
-                case "Lab":
-                    customIcon = labIcon;
-                    break;
-                case "Hospital":
-                    customIcon = hospitalIcon;
-                    break;
-                case "Pharmacy":
-                    customIcon = pharmacyIcon;
-                    break;
-                default:
-                    customIcon = defaultIcon;
-            }
+            // Store in cache based on placeType
+            if (placeType === "Hospital") locationCache.hospitals = osmData.elements;
+            else if (placeType === "Lab") locationCache.labs = osmData.elements;
+            else if (placeType === "Pharmacy") locationCache.pharmacies = osmData.elements;
 
-            osmData.elements.forEach(location => {
-                let marker = L.marker([location.lat, location.lon], { icon: customIcon }).addTo(map)
-                    .bindPopup(`<b>${location.tags.name || placeType}</b>`);
-                markers.push(marker);
-            });
+            plotCachedLocations(osmData.elements, getIconForType(placeType), placeType);
+
+            // let customIcon;
+            // switch (placeType) {
+            //     case "Lab":
+            //         customIcon = labIcon;
+            //         break;
+            //     case "Hospital":
+            //         customIcon = hospitalIcon;
+            //         break;
+            //     case "Pharmacy":
+            //         customIcon = pharmacyIcon;
+            //         break;
+            //     default:
+            //         customIcon = defaultIcon;
+            // }
+
+            // osmData.elements.forEach(location => {
+            //     // console.log("Location Data:", location); // Debugging step
+            //     let name = 'Made up name';
+            //     let description = 'Hello';
+            //     let marker = L.marker([location.lat, location.lon], { icon: customIcon }).addTo(map)
+            //     .bindPopup(`
+            //         <b>${location.tags.name || placeType}</b><br>
+            //         <button type="button" onclick="showSidebar('${name}', '${description}', ${location.lat}, ${location.lon});">Show Details</button>
+            //     `);
+                
+            //     markers.push(marker);
+            // });
         })
         .catch(err => console.error(`❌ ${placeType} fetch error:`, err));
 }
 
+function plotCachedLocations(locations, icon, placeType) {
+    locations.forEach(location => {
+        let name = 'Made up name';
+        let description = 'Hello';
+        let marker = L.marker([location.lat, location.lon], { icon: icon }).addTo(map)
+            .bindPopup(`
+                <b>${location.tags.name || placeType}</b><br>
+                <button type="button" onclick="showSidebar('${name}', '${description}', ${location.lat}, ${location.lon});">Show Details</button>
+            `);
+        markers.push(marker);
+    });
+}
+
+function getIconForType(placeType) {
+    switch (placeType) {
+        case "Lab": return labIcon;
+        case "Hospital": return hospitalIcon;
+        case "Pharmacy": return pharmacyIcon;
+        default: return defaultIcon;
+    }
+}
 
 function clearMarkers() {
+    if (locationMarker) {
+        map.removeLayer(locationMarker);
+        locationMarker = null;
+    }
     markers.forEach(marker => map.removeLayer(marker));
     markers = [];
 }
@@ -295,9 +362,12 @@ function getDirections(destLat, destLon) {
         alert("User location not found. Please enable location services.");
         return;
     }
+
     clearMarkers();
+
     let destinationMarker = L.marker([destLat, destLon], { icon: pharmacyIcon }).addTo(map)
-        .bindPopup("<b>Destination</b>").openPopup();
+        .bindPopup(`<b>Destination</b>`)
+        .openPopup();
 
     markers.push(destinationMarker);
 
@@ -305,12 +375,66 @@ function getDirections(destLat, destLon) {
         map.removeControl(routeControl);
     }
 
+    // Add Leaflet Routing Machine to calculate and display the route inside the map
     routeControl = L.Routing.control({
         waypoints: [
             L.latLng(userLocation[0], userLocation[1]),
             L.latLng(destLat, destLon)
         ],
         routeWhileDragging: true,
-        createMarker: function () { return null; }  // Remove default Leaflet Routing markers
+        lineOptions: { styles: [{ color: 'blue', weight: 5 }] },
+        router: L.Routing.osrmv1({
+            serviceUrl: 'https://router.project-osrm.org/route/v1' // OSRM API for route calculations
+        }),
+        createMarker: function () { return null; } // Hide default markers
     }).addTo(map);
+
+    // Capture route instructions and show them in the sidebar
+    routeControl.on('routesfound', function (e) {
+        let routes = e.routes[0].instructions.map(inst => `<li>${inst.text}</li>`).join('');
+        document.getElementById("route-info").innerHTML = `<ul>${routes}</ul>`;
+    });
 }
+
+// Function to Show Sidebar
+function showSidebar(name, description, lat, lon) {
+    let sidebar = document.getElementById("sidebar");
+    if (!sidebar) {
+        console.error("Sidebar element not found!");
+        return;
+    }
+    document.getElementById("marker-title").innerText = name;
+    document.getElementById("marker-info").innerText = description;
+    document.getElementById("route-info").innerHTML = "";
+
+    // Update Get Directions button to call getDirections
+    let getDirectionBtn = document.getElementById("getDirection");
+    getDirectionBtn.onclick = function() {
+        getDirections(lat, lon);
+    };
+
+    // Show sidebar
+    sidebar.classList.add("sidebar-visible");
+}
+
+// Function to Close Sidebar
+function closeSidebar() {
+    let sidebar = document.getElementById("sidebar");
+    sidebar.classList.remove("sidebar-visible");
+    if (routeControl) {
+        map.removeControl(routeControl);
+        routeControl = null;
+        clearMarkers();
+    }
+    document.getElementById("route-info").innerHTML = ""; 
+}
+
+
+document.addEventListener("DOMContentLoaded", function () {
+    let closeSidebarBtn = document.getElementById("closeSidebar");
+    if (closeSidebarBtn) {
+        closeSidebarBtn.onclick = closeSidebar;
+    } else {
+        console.error("Close Sidebar button not found!");
+    }
+});

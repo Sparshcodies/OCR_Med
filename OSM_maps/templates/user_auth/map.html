@@ -21,26 +21,52 @@
 </head>
 <body>
 
-    <!-- Logout Button -->
-    <a href="{% url 'logout' %}" class="logout"><button>Logout</button></a>
-
+    <!-- Navigation Ribbon (Left Side) -->
+    <div id="navRibbon">
+        <!-- <button id="navBtn" title="Menu">☰</button> -->
+        <button id="savedBtn" title="Saved">💾</button>
+        <button id="recentSearchesBtn" title="Recent Searches">🔍</button>
+        <button id="doctorBtn" title="Find Doctors">�</button>
+        <button id="hospitalBtn" title="Find Hospitals">🏥</button>
+        <button id="pharmacyBtn" title="Find Pharmacies">💊</button>
+        <button id="labBtn" title="Find Labs">🧪</button>
+        <button id="resetBtn" title="Reset Map">🔄</button>
+        <!-- Logout Button -->
+        <a href="{% url 'logout' %}" class="logout">
+            <button id="logoutBtn" title="Log Out">Logout</button>
+        </a>
+    </div>
     <!-- Search Bar -->
-    <div class="overlay">
+    <div class="overlay",id="searchBar">
         <input type="text" id="locationInput" placeholder="Search location..." required autocomplete="off">
         <button id="searchBtn" title="Search for a location">🔍</button>
         <div id="autocompleteList" class="autocomplete-list"></div>
     </div>
+    <!-- Sidebar (Initially Hidden) -->
+    <div id="sidebar">
+        <div id="sidebar-content">
+            <h2 id="marker-title"></h2>
+            <p id="marker-info"></p>
+            <button id="getDirection">Get Directions</button>
+            <h3>Navigation Route</h3>
+            <div id="route-info"></div>
+            <button id="closeSidebar">Close</button>
+        </div>
+    </div>
+    
+    
+
 
     <!-- Map Container -->
     <div id="map"></div>
 
     <!-- Shortcut Buttons -->
-    <div class="shortcut-buttons">
+    <!-- <div class="shortcut-buttons">
         <button id="labBtn" title="Find Labs" aria-label="Find Labs">🧪</button>
         <button id="hospitalBtn" title="Find Hospitals" aria-label="Find Hospitals">🏥</button>
         <button id="pharmacyBtn" title="Find Pharmacies" aria-label="Find Pharmacies">💊</button>
         <button id="resetBtn" title="Reset Map" aria-label="Reset Map">🔄</button>
-    </div>
+    </div> -->
 
     <script src="/static/OSM_maps/script.js"></script>
 
