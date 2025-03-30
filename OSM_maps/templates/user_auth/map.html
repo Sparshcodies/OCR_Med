@@ -24,9 +24,9 @@
     <!-- Navigation Ribbon (Left Side) -->
     <div id="navRibbon">
         <!-- <button id="navBtn" title="Menu">☰</button> -->
-        <button id="savedBtn" title="Saved">💾</button>
+        <button id="savedBtn" title="Saved Locations">💾</button>
         <button id="recentSearchesBtn" title="Recent Searches">🔍</button>
-        <button id="doctorBtn" title="Find Doctors">�</button>
+        <button id="doctorBtn" title="Find Doctors">🩺</button>
         <button id="hospitalBtn" title="Find Hospitals">🏥</button>
         <button id="pharmacyBtn" title="Find Pharmacies">💊</button>
         <button id="labBtn" title="Find Labs">🧪</button>
@@ -39,7 +39,7 @@
     <!-- Search Bar -->
     <div class="overlay",id="searchBar">
         <input type="text" id="locationInput" placeholder="Search location..." required autocomplete="off">
-        <button id="searchBtn" title="Search for a location">🔍</button>
+        <button id="searchBtn" title="Search for a location">Search</button>
         <div id="autocompleteList" class="autocomplete-list"></div>
     </div>
     <!-- Sidebar (Initially Hidden) -->
@@ -47,26 +47,33 @@
         <div id="sidebar-content">
             <h2 id="marker-title"></h2>
             <p id="marker-info"></p>
+
+            <label for="sourceLocation">Enter Source Location:</label>
+            <input type="text" id="sourceLocation" placeholder="Your location" autocomplete="off">
+            <div id="sourceAutocompleteList" class="autocomplete-list"></div>
+
+            <label for="destinationLocation">Enter Destination Location:</label>
+            <input type="text" id="destinationLocation" autocomplete="off">
+            <div id="destinationAutocompleteList" class="autocomplete-list"></div>
+
             <button id="getDirection">Get Directions</button>
             <h3>Navigation Route</h3>
             <div id="route-info"></div>
-            <button id="closeSidebar">Close</button>
         </div>
+        <button id="closeSidebar">Close</button>
     </div>
     
-    
-
-
     <!-- Map Container -->
     <div id="map"></div>
 
     <!-- Shortcut Buttons -->
-    <!-- <div class="shortcut-buttons">
-        <button id="labBtn" title="Find Labs" aria-label="Find Labs">🧪</button>
-        <button id="hospitalBtn" title="Find Hospitals" aria-label="Find Hospitals">🏥</button>
-        <button id="pharmacyBtn" title="Find Pharmacies" aria-label="Find Pharmacies">💊</button>
-        <button id="resetBtn" title="Reset Map" aria-label="Reset Map">🔄</button>
-    </div> -->
+    <div class="shortcut-buttons">
+        <button id="doctorBtn2" title="Find Doctors">Doctors</button>
+        <button id="hospitalBtn2" title="Find Hospitals" aria-label="Find Hospitals">Hospitals</button>
+        <button id="pharmacyBtn2" title="Find Pharmacies" aria-label="Find Pharmacies">Pharmacy</button>
+        <button id="labBtn2" title="Find Labs" aria-label="Find Labs">Labs</button>
+        <!-- <button id="resetBtn" title="Reset Map" aria-label="Reset Map">Reset</button> -->
+    </div>
 
     <script src="/static/OSM_maps/script.js"></script>
 

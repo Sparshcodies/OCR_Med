@@ -45,14 +45,14 @@
             padding: 10px;
             border: none;
             border-radius: 5px;
-            background: #007bff;
+            background: #7fcae8;
             color: white;
             font-size: 16px;
             transition: background 0.3s;
             margin-top: 10px;
         }
         #navRibbon button:hover {
-            background: #0056b3;
+            background: #25afe6;
         }
         #locationInput {
             padding: 6px;
@@ -70,11 +70,12 @@
         }
 
         #logoutBtn {
-            width: 55px; /* Match other buttons */
+            width: 60px; /* Match other buttons */
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 10px;
+            background: #007bff;
         }
         .shortcut-buttons {
             position: absolute;
@@ -102,12 +103,12 @@
             position: absolute;
             top: 40px;
             background: white;
-            width: 200px;
+            width: 280px;
             border: 1px solid #ccc;
             border-radius: 4px;
             box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
             display: none;
-            z-index: 1000;
+            z-index: 2100;
         }
         .autocomplete-list div {
             padding: 8px;
@@ -122,7 +123,7 @@
             position: fixed;
             top: 50%;
             right: -350px; /* Hidden initially */
-            width: 300px;
+            width: 320px;
             height: 100vh;
             background: white;
             box-shadow: -2px 0 5px rgba(0, 0, 0, 0.3);
@@ -132,14 +133,20 @@
             opacity: 0; /* Initially hidden */
             border-radius: 10px 0 0 10px;
             visibility: hidden;
-            overflow-y: auto;
             z-index: 2000;
+            overflow: hidden;
         }
         .sidebar-visible {
             right: 0 !important; /* Slide in */
             opacity: 1 !important; /* Make visible */
             visibility: visible !important;
             transform: translateX(0);
+        }
+        /* Scrollable Content Area */
+        #sidebar-content {
+            height: calc(100vh - 80px); /* Reserve space for the close button (adjust as needed) */
+            overflow-y: auto;
+            padding-right: 10px; /* Optional: for scrollbar space */
         }
         #sidebar h2 {
             font-size: 20px;
@@ -149,6 +156,7 @@
             font-size: 14px;
             color: #555;
         }
+        
         #getDirection, #closeSidebar {
             margin-top: 10px;
             padding: 8px;
@@ -159,9 +167,53 @@
         #getDirection {
             background: #007bff;
             color: white;
+            padding: 8px;
+            width: 100%;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        #getDirection:hover {
+            background: #0056b3;
         }
         #closeSidebar {
+            position: absolute;
+            bottom: 20px;  /* Adjust as needed */
+            left: 20px;
+            right: 20px;
             background: #ff4d4d;
             color: white;
-            margin-top: auto;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 2100;
+        }
+        #closeSidebar:hover {
+            background: #e04343;
+        }
+        /* Scrollable content inside the sidebar */
+        #sidebar-scroll {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 10px; /* Space for the fixed close button */
+        }
+        /* Style for input boxes (source and destination) */
+        #sourceLocation, 
+        #destinationLocation {
+            width: 100%;
+            padding: 8px 10px;
+            margin: 5px 0 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        /* Route Info - only this area scrolls vertically */
+        #route-info {
+            max-height: 300px; /* Adjust the height as needed */
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-top: 10px;
         }
