@@ -217,3 +217,77 @@
             padding: 10px;
             margin-top: 10px;
         }
+
+        /* Left Sidebar */
+        #leftSidebar {
+            position: fixed;
+            top: 0;
+            left: -370px; /* Initially hidden */
+            width: 350px;
+            height: 100vh;
+            background: white;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            transition: left 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            z-index: 3000;
+            overflow-y: auto;
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .left-sidebar-visible {
+            left: 0 !important; /* Slide in */
+            opacity: 1 !important;      /* Make fully opaque */
+            visibility: visible !important; /* Make visible */
+        }
+
+        /* Close button styling for left sidebar */
+        #closeLeftSidebar {
+            display: block;
+            width: 100%;
+            margin-top: 20px;
+            padding: 10px;
+            background: #ff4d4d;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #closeLeftSidebar:hover {
+            background: #e04343;
+        }
+
+        /* Hide navRibbon when left sidebar is open */
+        .nav-hidden {
+            display: none;
+        }
+        #saveLocationBtn {
+            margin-top: 10px;
+            padding: 8px;
+            width: 100%;
+            border: none;
+            background: #28a745;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        #saveLocationBtn:hover {
+            background: #218838;
+        }
+        #formatData {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s ease-in-out;
+        }
+        #formatData:hover {
+            background: #0056b3;
+        }

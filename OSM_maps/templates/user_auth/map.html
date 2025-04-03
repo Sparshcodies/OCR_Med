@@ -36,6 +36,19 @@
             <button id="logoutBtn" title="Log Out">Logout</button>
         </a>
     </div>
+
+    <!-- Left Sidebar (Initially Hidden) -->
+    <div id="leftSidebar">
+        <div id="leftSidebarContent">
+            <h2 id="leftSidebarTitle"></h2>
+            <div id="leftSidebarList">
+                <!-- Saved Locations or Search History will be listed here -->
+            </div>
+        </div>
+        <button id="formatData">Clear Data</button>
+        <button id="closeLeftSidebar">Close</button>
+    </div>
+
     <!-- Search Bar -->
     <div class="overlay",id="searchBar">
         <input type="text" id="locationInput" placeholder="Search location..." required autocomplete="off">
@@ -47,6 +60,7 @@
         <div id="sidebar-content">
             <h2 id="marker-title"></h2>
             <p id="marker-info"></p>
+            <button id="saveLocationBtn">Save Location</button>
 
             <label for="sourceLocation">Enter Source Location:</label>
             <input type="text" id="sourceLocation" placeholder="Your location" autocomplete="off">
