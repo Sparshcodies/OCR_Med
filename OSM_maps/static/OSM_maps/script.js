@@ -16,6 +16,12 @@ let locationCache = {
     pharmacies: null,
     doctors: null
 };
+function initializeCache(lat, lon) {
+    fetchLabs(lat, lon, false);
+    fetchHospitals(lat, lon, false);
+    fetchDoctors(lat, lon, false);
+    fetchPharmacies(lat, lon, false);
+}
 function clearLocationCache() {
     locationCache.hospitals = null;
     locationCache.labs = null;
@@ -281,6 +287,7 @@ function showSavedLocations() {
     })
     .catch(err => console.error("Error fetching saved locations:", err));
 }
+document.getElementById("saveLocationBtn").addEventListener("click", saveLocation);
 function saveLocation() {
     let name = document.getElementById("marker-title").innerText;
     let location_type = window.currentPlaceType;  // Adjust based on search category
@@ -593,7 +600,7 @@ function fetchPharmacies(lat, lon) {
         console.warn("No pharmacies found in cache after queries.");
     }
 }
-function executeOverpassQuery(query, placeType) {
+function executeOverpassQuery(query, placeType, plot=true) {
     const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
     fetch(url)
         .then(response => response.json())
@@ -609,11 +616,13 @@ function executeOverpassQuery(query, placeType) {
             else if (placeType === "Pharmacy") locationCache.pharmacies = osmData.elements;
             else if (placeType === "Doctors") locationCache.doctors = osmData.elements;
 
-            // plotCachedLocations(osmData.elements, getIconForType(placeType), placeType);
+            if (plot){
+            plotCachedLocations(osmData.elements, getIconForType(placeType), placeType);
+            }
         })
         .catch(err => console.error(`❌ ${placeType} fetch error:`, err));
 }
-function executeDBQuery(locationType, lat, lon) {
+function executeDBQuery(locationType, lat, lon, plot=true) {
     let endpoint = "";
     // Choose the correct endpoint based on the locationType.
     switch (locationType) {
@@ -655,8 +664,10 @@ function executeDBQuery(locationType, lat, lon) {
             // The response key is the lower-case plural of the model name.
             if (data[key] && data[key].length > 0) {
                 console.log(`DB ${locationType} data:`, data[key]);
+                if (plot){
                 // Plot these DB markers using your generic plotting function.
-                // plotCachedLocations(data[key], getIconForType(locationType), locationType);
+                plotCachedLocations(data[key], getIconForType(locationType), locationType);
+                }
             } else {
                 console.log(`No DB ${locationType} results found.`);
             }
@@ -807,7 +818,6 @@ function getDirections() {
 }
 
 // Initialize both autocompletes
-document.getElementById("saveLocationBtn").addEventListener("click", saveLocation);
 document.addEventListener("DOMContentLoaded", function () {
     setupSourceLocationAutocomplete("sourceLocation", "sourceAutocompleteList", true);
     setupDestinationAutocomplete("destinationLocation", "destinationAutocompleteList");
@@ -922,6 +932,7 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 // Function to Show Sidebar
 function showSidebar(name, description, lat, lon) {
+    closeLeftSidebar()
     let sidebar = document.getElementById("sidebar");
     if (!sidebar) {
         console.error("Sidebar element not found!");
@@ -990,6 +1001,7 @@ function closeSidebar() {
     document.getElementById("route-info").innerHTML = ""; 
 }
 function showLeftSidebar(title) {
+    closeSidebar()
     document.getElementById("leftSidebarTitle").textContent = title;
     document.getElementById("leftSidebar").classList.add("left-sidebar-visible");
 

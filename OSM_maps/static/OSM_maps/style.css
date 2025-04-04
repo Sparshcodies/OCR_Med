@@ -133,7 +133,7 @@
             opacity: 0; /* Initially hidden */
             border-radius: 10px 0 0 10px;
             visibility: hidden;
-            z-index: 2000;
+            z-index: 3000;
             overflow: hidden;
         }
         .sidebar-visible {
@@ -188,7 +188,7 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            z-index: 2100;
+            z-index: 3100;
         }
         #closeSidebar:hover {
             background: #e04343;
@@ -222,46 +222,48 @@
         #leftSidebar {
             position: fixed;
             top: 0;
-            left: -370px; /* Initially hidden */
-            width: 350px;
+            right: -350px; /* Initially hidden */
+            width: 320px;
             height: 100vh;
             background: white;
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3);
-            padding: 20px;
-            transition: left 0.3s ease-in-out, opacity 0.3s ease-in-out;
-            z-index: 3000;
+            /* padding: 20px; */
+            transition: right 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            z-index: 2000;
             overflow-y: auto;
             opacity: 0;
             visibility: hidden;
         }
 
         .left-sidebar-visible {
-            left: 0 !important; /* Slide in */
+            right: 0 !important; /* Slide in */
             opacity: 1 !important;      /* Make fully opaque */
             visibility: visible !important; /* Make visible */
         }
 
         /* Close button styling for left sidebar */
         #closeLeftSidebar {
-            display: block;
-            width: 100%;
-            margin-top: 20px;
-            padding: 10px;
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
             background: #ff4d4d;
             color: white;
+            padding: 10px;
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            z-index: 2100;
         }
 
         #closeLeftSidebar:hover {
             background: #e04343;
         }
 
-        /* Hide navRibbon when left sidebar is open */
+        /* Hide navRibbon when left sidebar is open
         .nav-hidden {
             display: none;
-        }
+        } */
         #saveLocationBtn {
             margin-top: 10px;
             padding: 8px;
@@ -291,3 +293,25 @@
         #formatData:hover {
             background: #0056b3;
         }
+        /* Style for list items in the left sidebar */
+        #leftSidebarList > div,
+        .saved-location-item {
+        padding: 12px 15px;
+        margin-bottom: 10px;
+        background-color: #f9f9f9;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        font-size: 16px;
+        color: #333;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Hover effect for better interactivity */
+        #leftSidebarList > div:hover,
+        .saved-location-item:hover {
+        background-color: #e0e0e0;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
