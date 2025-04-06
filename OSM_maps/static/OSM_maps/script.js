@@ -7,6 +7,7 @@ let devicelocation = null;
 let sourceMarker = null;
 let destinationMarker = null;
 let debounceTimer;
+const SORT_MODES = ["Default", "Distance", "Opening"];
 window.currentPlaceType = null; // Store the current place type
 
 // Local Storage Cache
@@ -79,7 +80,6 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 // Initialize User Location
 initializeUserLocation();
 function initializeUserLocation() {
-    // Get user's current location using geolocation API
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(position => {
             clearLocationCache();
@@ -120,36 +120,28 @@ function setupSearch() {
         console.error("❌ Search elements not found!");
         return;
     }
-
-    // Pressing "Enter" triggers search
     input.addEventListener("keyup", function (event) {
         if (event.key === "Enter") {
             searchLocation(input.value);
             autocompleteList.style.display = "none";
         }
     });
-
-    // Clicking the search button triggers search
     searchBtn.addEventListener("click", function () {
         searchLocation(input.value);
         autocompleteList.style.display = "none";
     });
-
-    // Autocomplete logic
     input.addEventListener("input", function () {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
             const query = input.value.trim().toLowerCase();
-            autocompleteList.innerHTML = ""; // Clear previous results
+            autocompleteList.innerHTML = "";
 
             if (query.length < 2) {
                 autocompleteList.style.display = "none";
                 return;
             }
 
-            let matchedLocations = new Set(); // Use Set to avoid duplicates
-
-            // Fetch from cache first
+            let matchedLocations = new Set();
             Object.values(locationCache).forEach(locations => {
                 if (locations) {
                     locations.forEach(location => {
@@ -169,13 +161,9 @@ function setupSearch() {
                     });
                 }
             });
-
-            // If cache had results, show them first
             if (matchedLocations.size > 0) {
                 autocompleteList.style.display = "block";
             }
-
-            // Fetch from Nominatim and add results **without erasing previous ones**
             fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&countrycodes=IN`)
                 .then(response => response.json())
                 .then(data => {
@@ -255,7 +243,6 @@ function searchLocation(query) {
         .catch(error => console.error("❌ Search error:", error));
 }
 
-// Fetch and display saved locations
 document.getElementById("savedBtn").addEventListener("click", function() {
     showLeftSidebar("Your Saved Locations");
     showSavedLocations();
@@ -265,13 +252,11 @@ function showSavedLocations() {
     .then(response => response.json())
     .then(data => {
         let listContainer = document.getElementById("leftSidebarList");
-        listContainer.innerHTML = "";  // Clear previous list
-        // Show message if no saved locations exist
+        listContainer.innerHTML = "";
         if (data.saved_locations.length === 0) {
             listContainer.innerHTML = "<p style='padding: 10px;'>No saved locations.</p>";
             return;
         }
-        
         data.saved_locations.forEach(loc => {
             let item = document.createElement("div");
             item.classList.add("saved-location-item");
@@ -294,7 +279,6 @@ function saveLocation() {
     let lat = destinationMarker.getLatLng().lat;
     let lon = destinationMarker.getLatLng().lng;
     let address = document.getElementById("marker-info").innerText || "No address";
-
     fetch('/save_location/', {
         method: 'POST',
         headers: {
@@ -335,19 +319,13 @@ function showSearchHistory() {
     fetch('/get_recent_searches/')
     .then(response => response.json())
     .then(data => {
-        console.log("Recent searches data:", data); // Debug: log the response
         let listContainer = document.getElementById("leftSidebarList");
-        listContainer.innerHTML = ""; // Clear previous list
-
-        // Check if the key exists as expected
+        listContainer.innerHTML = "";
         let searches = data.search_history || data.recent_searches; // Try both keys
-
-        // Show message if no search history exists
         if (!searches || searches.length === 0) {
             listContainer.innerHTML = "<p style='padding: 10px;'>No search history.</p>";
             return;
         }
-
         searches.forEach(search => {
             let item = document.createElement("div");
             item.classList.add("search-history-item");
@@ -399,7 +377,6 @@ function clearSearchHistory() {
         }
     });
 }
-
 function setupPlaceButton(buttonId, placeType) {
     document.getElementById(buttonId).addEventListener("click", () => {
         window.currentPlaceType = placeType;
@@ -415,7 +392,6 @@ function setupPlaceButton(buttonId, placeType) {
 ["labBtn", "labBtn2"].forEach(id => setupPlaceButton(id, "Lab"));
 ["pharmacyBtn", "pharmacyBtn2"].forEach(id => setupPlaceButton(id, "Pharmacy"));
 ["doctorBtn", "doctorBtn2"].forEach(id => setupPlaceButton(id, "Doctor"));
-
 function fetchPlaceData(type, lat, lon) {
     clearMarkers();
     switch (type) {
@@ -424,23 +400,15 @@ function fetchPlaceData(type, lat, lon) {
         case "Pharmacy": cacheKey = "pharmacies"; break;
         case "Doctor": cacheKey = "doctors"; break;
     }
-
     if (locationCache[cacheKey]) {
         console.log("Using cached data 🗄️");
         populateLeftSidebarFromCache(type);
         plotCachedLocations(locationCache[cacheKey], getIconForType(type), type);
-        // return;
     } else {
-    const query = getOverpassQueryForType(type);
-    executeOverpassQuery(query, type),
-    executeDBQuery(type, lat, lon)
+        const query = getOverpassQueryForType(type);
+        executeOverpassQuery(query, type),
+        executeDBQuery(type, lat, lon)
     }
-    // if (locationCache[cacheKey]) {
-    //     plotCachedLocations(locationCache[cacheKey], getIconForType(type), type);
-    //     populateLeftSidebarFromCache(type);
-    // } else {
-    //     console.warn("No {type} found in cache after queries.");
-    // }
 }
 function getOverpassQueryForType(type) {
     const queries = {
@@ -492,7 +460,6 @@ function executeOverpassQuery(query, placeType, plot=true) {
     fetch(url)
         .then(response => response.json())
         .then(osmData => {
-            // console.log("Overpass API Response:", osmData); // Debugging step
             if (!osmData.elements || osmData.elements.length === 0) {
                 alert(`No ${placeType}s found nearby.`);
                 return;
@@ -514,34 +481,30 @@ function executeDBQuery(locationType, lat, lon, plot=true) {
         case "Hospital": endpoint = "/api/hospitals/"; break;
         case "Doctor": endpoint = "/api/doctors/"; break;
         case "Lab": endpoint = "/api/labs/"; break;
-        default:
-            console.error("Unknown location type:", locationType);
+        default: console.error("Unknown location type:", locationType);
             return;
     }
-
     fetch(`${endpoint}?lat=${lat}&lon=${lon}`)
         .then(response => response.json())
         .then(data => {
             let key = (locationType === "Pharmacy") ? "pharmacies" : locationType.toLowerCase()+"s";
             let items = data[key] || [];
-            // Normalize to match Overpass format
             let formattedItems = items.map(item => ({
                 lat: item.lat,
                 lon: item.lon,
-                tags: { name: item.name },
+                tags: { name: item.name,
+                    opening_hours: item.opening_hours,
+                },
                 address: item.address
             }));
-            // **Save to cache**
             if (!locationCache[key]) {
                 locationCache[key] = formattedItems;
             } else {
                 locationCache[key] = [...locationCache[key], ...formattedItems]; // Merge new results
             }
-            // The response key is the lower-case plural of the model name.
             if (data[key] && data[key].length > 0) {
                 console.log(`DB ${locationType} data:`, data[key]);
                 if (plot){
-                // Plot these DB markers using your generic plotting function.
                 populateLeftSidebarFromCache(locationType);
                 plotCachedLocations(data[key], getIconForType(locationType), locationType);
                 }
@@ -554,20 +517,15 @@ function executeDBQuery(locationType, lat, lon, plot=true) {
 document.getElementById("resetBtn").addEventListener("click", function () {
     clearMarkers();
     initializeUserLocation();
-    // Close any open sidebar
     if (typeof closeSidebar === "function") {
         closeSidebar();
     }
 });
-
-// Place marker and move the map
 function placeMarkerAndMove(lat, lon) {
     clearLocationCache();
     lat = parseFloat(lat);
     lon = parseFloat(lon);
     userLocation = [lat, lon];
-
-    // Update (or create) the source marker to reflect the searched location
     if (sourceMarker) {
         sourceMarker.setLatLng(userLocation);
     } else {
@@ -579,16 +537,12 @@ function placeMarkerAndMove(lat, lon) {
             console.log("📍 Source moved to:", userLocation);
         });
     }
-
-    // Update (or create) the destination marker as before
     if (!destinationMarker) {
         destinationMarker = L.marker([lat, lon], { draggable: false }).addTo(map)
             .bindPopup("Destination").openPopup();
     } else {
         destinationMarker.setLatLng([lat, lon]);
     }
-
-    // Update the destination input box
     document.getElementById("destinationLocation").value = `Lat: ${lat}, Lon: ${lon}`;
     map.setView([lat, lon], 14);
 }
@@ -603,13 +557,11 @@ function moveToLocation(lat, lon) {
 function updateMarker(lat, lon, isSource) {
     lat = parseFloat(lat);
     lon = parseFloat(lon);
-
     if (isSource) {
         clearLocationCache();
         if (!sourceMarker) {
             sourceMarker = L.marker([lat, lon], { draggable: true }).addTo(map)
                 .bindPopup("Source").openPopup();
-
             sourceMarker.on("dragend", function (event) {
                 let newPos = event.target.getLatLng();
                 userLocation = [newPos.lat, newPos.lng];
@@ -626,12 +578,10 @@ function updateMarker(lat, lon, isSource) {
             destinationMarker.setLatLng([lat, lon]);
         }
     }
-
     map.setView([lat, lon], 14);
 }
 function plotCachedLocations(locations, icon, placeType) {
     locations.forEach(location => {
-        // Use location.tags.name if available; otherwise use location.name
         let name = (location.tags && location.tags.name) ? location.tags.name : (location.name || placeType);
         let description = `Lat: ${location.lat}, Lon: ${location.lon}`;
         let marker = L.marker([location.lat, location.lon], { icon: icon }).addTo(map)
@@ -647,13 +597,11 @@ function clearMarkers() {
         map.removeLayer(locationMarker);
         locationMarker = null;
     }
-
     markers.forEach(marker => {
         if (marker && map.hasLayer(marker)) {
             map.removeLayer(marker);
         }
     });
-
     markers = [];
 }
 function getDirections() {
@@ -664,7 +612,6 @@ function getDirections() {
     if (!userLocation) {
         alert("User location not found. Please enable location services.");
     }
-
     clearMarkers();
     let sourcePos = sourceMarker.getLatLng();
     let destPos = destinationMarker.getLatLng();
@@ -672,8 +619,6 @@ function getDirections() {
     if (routeControl) {
         map.removeControl(routeControl);
     }
-
-    // Add Leaflet Routing Machine to calculate and display the route inside the map
     routeControl = L.Routing.control({
         waypoints: [
             L.latLng(sourcePos.lat, sourcePos.lng),
@@ -686,15 +631,64 @@ function getDirections() {
         }),
         createMarker: function () { return null; } // Hide default markers
     }).addTo(map);
-
-    // Capture route instructions and show them in the sidebar
     routeControl.on('routesfound', function (e) {
         let routes = e.routes[0].instructions.map(inst => `<li>${inst.text}</li>`).join('');
         document.getElementById("route-info").innerHTML = `<ul>${routes}</ul>`;
     });
 }
+function getCSRFToken() {
+    let cookieValue = null;
+    let name = 'csrftoken';
+    if (document.cookie && document.cookie !== '') {
+        let cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            cookie = cookie.trim();
+            if (cookie.startsWith(name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+function populateLeftSidebarFromCache(locationType) {
+    // Determine the cache key from the location type.
+    let cacheKey = "";
+    switch(locationType) {
+        case "Pharmacy": cacheKey = "pharmacies"; break;
+        case "Hospital": cacheKey = "hospitals"; break;
+        case "Lab": cacheKey = "labs"; break;
+        case "Doctor": cacheKey = "doctors"; break;
+        default: console.error("Unknown location type:", locationType);
+        return;
+    }
+    let sidebarTitle = document.getElementById("leftSidebarTitle");
+    sidebarTitle.textContent = locationType + " near you";
+    showLeftSidebar(locationType + " near you");
+    // Clear and populate the sidebar list.
+    let sidebarList = document.getElementById("leftSidebarList");
+    sidebarList.innerHTML = "";
+    let results = locationCache[cacheKey];
+    if (!results || results.length === 0) {
+        sidebarList.innerHTML = `<p style="padding:10px;">No ${locationType} found near you.</p>`;
+    } else {
+        results.forEach(result => {
+            let name = (result.tags && result.tags.name) ? result.tags.name : (result.name || locationType);
+            let item = document.createElement("div");
+            let openingHours = result.tags?.opening_hours;
+            let status = openingHours ? (isOpenNow(openingHours) ? "🟢 Open Now" : "🔴 Closed") : "";
+            item.textContent = `${name} ${status}`;
+            item.style.cursor = "pointer";
+            item.addEventListener("click", function() {
+                closeLeftSidebar();
+                let address = result.address ? result.address : `Lat: ${result.lat}, Lon: ${result.lon}`;
+                showSidebar(name, address, result.lat, result.lon);
+            });
+            sidebarList.appendChild(item);
+        });
+    }
+}
 
-// Initialize both autocompletes
 document.addEventListener("DOMContentLoaded", function () {
     setupSourceLocationAutocomplete("sourceLocation", "sourceAutocompleteList", true);
     setupDestinationAutocomplete("destinationLocation", "destinationAutocompleteList");
@@ -702,14 +696,12 @@ document.addEventListener("DOMContentLoaded", function () {
 function setupSourceLocationAutocomplete(inputId, autocompleteListId, isSource) {
     const input = document.getElementById(inputId);
     const autocompleteList = document.getElementById(autocompleteListId);
-
     input.addEventListener("input", function () {
         const query = input.value.trim();
         if (query.length < 2) {
             autocompleteList.style.display = "none";
             return;
         }
-
         fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&countrycodes=IN`)
             .then(response => response.json())
             .then(data => {
@@ -720,7 +712,6 @@ function setupSourceLocationAutocomplete(inputId, autocompleteListId, isSource) 
                         item.textContent = place.display_name;
                         item.dataset.lat = place.lat;
                         item.dataset.lon = place.lon;
-
                         item.addEventListener("click", function () {
                             input.value = this.textContent;
                             let lat = parseFloat(this.dataset.lat);
@@ -728,7 +719,6 @@ function setupSourceLocationAutocomplete(inputId, autocompleteListId, isSource) 
                             updateMarker(lat, lon, isSource);
                             autocompleteList.style.display = "none";
                         });
-
                         autocompleteList.appendChild(item);
                     });
                     autocompleteList.style.display = "block";
@@ -742,41 +732,27 @@ function setupSourceLocationAutocomplete(inputId, autocompleteListId, isSource) 
 function setupDestinationAutocomplete(inputId, autocompleteListId) {
     let input = document.getElementById(inputId);
     let autocompleteList = document.getElementById(autocompleteListId);
-
     input.addEventListener("input", function () {
         const query = input.value.trim().toLowerCase();
         let currentType = window.currentPlaceType || "Pharmacy"; // default type
         let markersList = [];
         // Determine which cache array to use based on current place type
         switch (currentType) {
-            case "Lab":
-                markersList = locationCache.labs || [];
-                break;
-            case "Hospital":
-                markersList = locationCache.hospitals || [];
-                break;
-            case "Pharmacy":
-                markersList = locationCache.pharmacies || [];
-                break;
-            case "Doctor":
-                markersList = locationCache.doctors || [];
-                break;
-            default:
-                markersList = [];
+            case "Lab": markersList = locationCache.labs || []; break;
+            case "Hospital": markersList = locationCache.hospitals || []; break;
+            case "Pharmacy": markersList = locationCache.pharmacies || []; break;
+            case "Doctor": markersList = locationCache.doctors || []; break;
+            default: markersList = [];
         }
-
         autocompleteList.innerHTML = "";
         if (markersList.length === 0) {
             autocompleteList.style.display = "none";
             return;
         }
-
-        // Filter markers based on query (if any)
         let filteredMarkers = markersList.filter(marker => {
             let markerName = marker.tags && marker.tags.name ? marker.tags.name : currentType;
             return markerName.toLowerCase().includes(query);
         });
-
         if (filteredMarkers.length > 0) {
             filteredMarkers.forEach(marker => {
                 let markerName = marker.tags && marker.tags.name ? marker.tags.name : currentType;
@@ -807,7 +783,6 @@ document.addEventListener("DOMContentLoaded", function () {
 document.addEventListener("DOMContentLoaded", function() {
     document.getElementById("closeLeftSidebar").addEventListener("click", closeLeftSidebar);
 });
-// Function to Show Sidebar
 function showSidebar(name, description, lat, lon) {
     closeLeftSidebar()
     let sidebar = document.getElementById("sidebar");
@@ -815,19 +790,15 @@ function showSidebar(name, description, lat, lon) {
         console.error("Sidebar element not found!");
         return;
     }
-    
     document.getElementById("marker-title").innerText = name;
     document.getElementById("marker-info").innerText = description;
     document.getElementById("route-info").innerHTML = "";
     document.getElementById("destinationLocation").value = name;
-    // Set the destination marker to the selected marker location (default)
     if (!destinationMarker) {
         destinationMarker = L.marker([lat, lon], { draggable: false }).addTo(map);
     } else {
         destinationMarker.setLatLng([lat, lon]);
     }
-
-    // Set the source marker to the user location by default if not set
     if (!sourceMarker) {
         if (userLocation) {
             sourceMarker = L.marker(userLocation, { draggable: true }).addTo(map);
@@ -840,8 +811,6 @@ function showSidebar(name, description, lat, lon) {
             console.warn("User location not available. Source not set.");
         }
     }
-
-    // Update Get Directions button to call getDirections
     let getDirectionBtn = document.getElementById("getDirection");
     getDirectionBtn.onclick = function() {
         if (!sourceMarker || !destinationMarker) {
@@ -850,14 +819,9 @@ function showSidebar(name, description, lat, lon) {
         }
         getDirections(destinationMarker.getLatLng().lat, destinationMarker.getLatLng().lng);
     };
-
-    // Show sidebar
     sidebar.classList.add("sidebar-visible");
-
-    // Save this search history record to the DB
     saveSearchHistory(name, description, lat, lon);
 }
-// Function to Close Sidebar
 function closeSidebar() {
     let sidebar = document.getElementById("sidebar");
     sidebar.classList.remove("sidebar-visible");
@@ -869,14 +833,33 @@ function closeSidebar() {
         map.removeLayer(destinationMarker);
         destinationMarker = null;
     }
-    if (sourceMarker && map.hasLayer(sourceMarker)) {
-        map.removeLayer(sourceMarker);
-        sourceMarker = null;
-    }
     clearMarkers();
-    // initializeUserLocation();
     document.getElementById("route-info").innerHTML = ""; 
 }
+function dynamicSort(button) {
+    let idx = parseInt(button.dataset.sortIndex, 10) || 0;
+    idx = (idx + 1) % SORT_MODES.length;
+    button.dataset.sortIndex = idx;
+    const mode = SORT_MODES[idx];
+    button.textContent = `Sort by: ${mode}`;
+    if (mode === "Distance") {
+        sortDistance();
+    } else if (mode === "Opening") {
+        sortByOpeningHours();
+    } else {
+        defaultSort();
+    }
+}
+document.getElementById("formatData").addEventListener("click", function() {
+    let action = this.getAttribute("data-action");
+    if (action === "clear-history") {
+        clearSearchHistory();
+    } else if (action === "clear-saved") {
+        clearSavedLocations();
+    } else if (action === "sort") {
+        dynamicSort(this);
+    }
+});
 function showLeftSidebar(title) {
     closeSidebar()
     document.getElementById("leftSidebarTitle").textContent = title;
@@ -887,109 +870,119 @@ function showLeftSidebar(title) {
     if (title.includes("Search History")) {
         formatDataButton.textContent = "Clear Search History";
         formatDataButton.setAttribute("data-action", "clear-history");
+        formatDataButton.removeAttribute("data-sort-index");
     } else if (title.includes("Saved Locations")) {
         formatDataButton.textContent = "Clear Saved Locations";
         formatDataButton.setAttribute("data-action", "clear-saved");
+        formatDataButton.removeAttribute("data-sort-index");
     } else if (title.includes("Hospital near you") || title.includes("Lab near you") || title.includes("Pharmacy near you") || title.includes("Doctor near you")) {
-        formatDataButton.textContent = "Sort by Distance";
-        formatDataButton.setAttribute("data-action", "sort-distance");
+        formatDataButton.textContent = "Sort by: Default";
+        formatDataButton.setAttribute("data-action", "sort");
+        formatDataButton.setAttribute("data-sort-index", "0");
+
     }
 }
 function closeLeftSidebar() {
     let leftSidebar = document.getElementById("leftSidebar");
-
-    // Hide left sidebar
+    clearMarkers();
     leftSidebar.classList.remove("left-sidebar-visible");
 }
-// Function to get CSRF token from cookies (required for Django POST requests)
-function getCSRFToken() {
-    let cookieValue = null;
-    let name = 'csrftoken';
-    if (document.cookie && document.cookie !== '') {
-        let cookies = document.cookie.split(';');
-        for (let cookie of cookies) {
-            cookie = cookie.trim();
-            if (cookie.startsWith(name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-function populateLeftSidebarFromCache(locationType) {
-    // Determine the cache key from the location type.
-    let cacheKey = "";
-    switch(locationType) {
-        case "Pharmacy":
-            cacheKey = "pharmacies";
-            break;
-            case "Hospital":
-                cacheKey = "hospitals";
-                break;
-                case "Lab":
-                    cacheKey = "labs";
-                    break;
-                    case "Doctor":
-                        cacheKey = "doctors";
-                        break;
-                        default:
-                            console.error("Unknown location type:", locationType);
-                            return;
-                        }
-                        
-                        // Set the sidebar title.
-                        let sidebarTitle = document.getElementById("leftSidebarTitle");
-                        sidebarTitle.textContent = locationType + " near you";
-                        showLeftSidebar(locationType + " near you");
-                        
-                        // Clear and populate the sidebar list.
-                        let sidebarList = document.getElementById("leftSidebarList");
-                        sidebarList.innerHTML = "";
-                        let results = locationCache[cacheKey];
-                        if (!results || results.length === 0) {
-                            sidebarList.innerHTML = `<p style="padding:10px;">No ${locationType} found near you.</p>`;
-                        } else {
-                            results.forEach(result => {
-                                let name = (result.tags && result.tags.name) ? result.tags.name : (result.name || locationType);
-                                let item = document.createElement("div");
-                                item.textContent = name;
-                                item.style.cursor = "pointer";
-                                item.addEventListener("click", function() {
-                                    closeLeftSidebar();
-                                    let address = result.address ? result.address : `Lat: ${result.lat}, Lon: ${result.lon}`;
-                                    showSidebar(name, address, result.lat, result.lon);
-                                });
-                                sidebarList.appendChild(item);
-                            });
-                        }
-                        
-                        // Show the left sidebar (it should overlay the navRibbon due to its high z-index).
-                        // document.getElementById("leftSidebar").classList.add("left-sidebar-visible");
-}
-document.getElementById("formatData").addEventListener("click", function() {
-    let action = this.getAttribute("data-action");
-
-    if (action === "clear-history") {
-        clearSearchHistory();
-    } else if (action === "clear-saved") {
-        clearSavedLocations();
-    } else if (action === "sort-distance") {
-        sortDistance();
-    }
-});
-
 function sortDistance() {
-    console.log("Sorting by distance...")
-    // let sidebarList = document.getElementById("leftSidebarList");
-    // let items = Array.from(sidebarList.children);
-    // items.sort((a, b) => {
-    //     let latA = parseFloat(a.dataset.lat);
-    //     let lonA = parseFloat(a.dataset.lon);
-    //     let latB = parseFloat(b.dataset.lat);
-    //     let lonB = parseFloat(b.dataset.lon);
-    //     return getDistance(userLocation[0], userLocation[1], latA, lonA) - getDistance(userLocation[0], userLocation[1], latB, lonB);
-    // });
-    // sidebarList.innerHTML = ""; // Clear existing items
-    // items.forEach(item => sidebarList.appendChild(item)); // Append sorted items
+    const type = window.currentPlaceType;
+    if (!type) return;
+    const key = type === "Pharmacy" ? "pharmacies" : type.toLowerCase() + "s";
+    const list = locationCache[key] || [];
+    const enriched = list.map(loc => ({...loc,
+        distance: getDistance(
+        userLocation[0], userLocation[1],
+        loc.lat, loc.lon
+        )
+    }));
+    enriched.sort((a, b) => a.distance - b.distance);
+    const container = document.getElementById("leftSidebarList");
+    container.innerHTML = "";
+    enriched.forEach(loc => {
+    const name = loc.tags?.name || type;
+    const distKm = loc.distance.toFixed(2);
+    const item = document.createElement("div");
+    item.textContent = `${name} — ${distKm} km`;
+    item.style.cursor = "pointer";
+    item.dataset.lat = loc.lat;
+    item.dataset.lon = loc.lon;
+    item.addEventListener("click", () => {
+        closeLeftSidebar();
+        showSidebar(
+        name,
+        loc.address || `Lat: ${loc.lat}, Lon: ${loc.lon}`,
+        loc.lat,
+        loc.lon
+        );
+    });
+    container.appendChild(item);
+    });
+}
+function getDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Earth radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+function sortByOpeningHours() {
+    const type = window.currentPlaceType;
+    if (!type) return;
+
+    const key = type === "Pharmacy" ? "pharmacies" : type.toLowerCase() + "s";
+    const list = locationCache[key] || [];
+
+    const enriched = list.map(loc => {
+        const openingHours = loc.tags?.opening_hours;
+        const hasHours = !!openingHours;
+        const isOpen = isOpenNow(openingHours);
+        let status = 2; // 0 = open, 1 = closed, 2 = unknown
+        if (hasHours) status = isOpen ? 0 : 1;
+        return { ...loc, status, isOpen, openingHours };
+    });
+    enriched.sort((a, b) => a.status - b.status);
+    const container = document.getElementById("leftSidebarList");
+    container.innerHTML = "";
+    enriched.forEach(loc => {
+        const name = loc.tags?.name || type;
+        const statusText =
+            loc.status === 2 ? "❓ Hours Unknown" :
+            loc.isOpen ? "🟢 Open Now" : "🔴 Closed";
+        const item = document.createElement("div");
+        item.textContent = `${name} ${statusText}`;
+        item.style.cursor = "pointer";
+        item.dataset.lat = loc.lat;
+        item.dataset.lon = loc.lon;
+        item.addEventListener("click", () => {
+            closeLeftSidebar();
+            showSidebar(
+                name,
+                loc.address || `Lat: ${loc.lat}, Lon: ${loc.lon}`,
+                loc.lat,
+                loc.lon
+            );
+        });
+        container.appendChild(item);
+    });
+}
+function isOpenNow(openingHours) {
+    if (!openingHours || !openingHours.includes("-")) return false;
+    const [start, end] = openingHours.split("-").map(t => {
+        const [h, m] = t.split(":").map(Number);
+        return h * 60 + m; // convert to minutes
+    });
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    return currentMinutes >= start && currentMinutes <= end;
+}
+function defaultSort() {
+    console.log("Reverting to default order...");
+    populateLeftSidebarFromCache(window.currentPlaceType);
 }

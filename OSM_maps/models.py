@@ -7,6 +7,12 @@ class Pharmacy(models.Model):
     latitude = models.FloatField()
     longitude = models.FloatField()
     address = models.TextField(blank=True, null=True)
+    opening_hours = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="OSM‑style opening hours, e.g. '09:00-18:00'"
+    )
 
     def __str__(self):
         return self.name
@@ -16,6 +22,12 @@ class Hospital(models.Model):
     latitude = models.FloatField()
     longitude = models.FloatField()
     address = models.TextField(blank=True, null=True)
+    opening_hours = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="OSM‑style opening hours, e.g. '09:00-18:00'"
+    )
 
     def __str__(self):
         return self.name
@@ -25,6 +37,12 @@ class Doctor(models.Model):
     latitude = models.FloatField()
     longitude = models.FloatField()
     address = models.TextField(blank=True, null=True)
+    opening_hours = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="OSM‑style opening hours, e.g. '09:00-18:00'"
+    )
 
     def __str__(self):
         return self.name
@@ -34,6 +52,12 @@ class Lab(models.Model):
     latitude = models.FloatField()
     longitude = models.FloatField()
     address = models.TextField(blank=True, null=True)
+    opening_hours = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="OSM‑style opening hours, e.g. '09:00-18:00'"
+    )
 
     def __str__(self):
         return self.name

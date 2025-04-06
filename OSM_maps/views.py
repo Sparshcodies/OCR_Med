@@ -200,7 +200,8 @@ def get_filtered_locations(request, model):
             "name": loc.name,
             "lat": loc.latitude,
             "lon": loc.longitude,
-            "address": loc.address
+            "address": loc.address,
+            "opening_hours": loc.opening_hours,
         }
         for loc in locations
         if haversine(lat, lon, loc.latitude, loc.longitude) <= 5000
