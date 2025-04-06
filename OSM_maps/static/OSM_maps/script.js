@@ -14,7 +14,7 @@ let locationCache = {
     hospitals: null,
     labs: null,
     pharmacies: null,
-    doctors: null
+    doctors: null,
 };
 function initializeCache(lat, lon) {
     fetchLabs(lat, lon, false);
@@ -59,7 +59,7 @@ function getIconForType(placeType) {
         case "Lab": return labIcon;
         case "Hospital": return hospitalIcon;
         case "Pharmacy": return pharmacyIcon;
-        case "Doctors": return hospitalIcon; // Use hospital icon for doctors
+        case "Doctor": return hospitalIcon; // Use hospital icon for doctors
         default: return defaultIcon;
     }
 }
@@ -399,206 +399,93 @@ function clearSearchHistory() {
         }
     });
 }
-document.getElementById("labBtn").addEventListener("click", function () {
-    window.currentPlaceType = "Lab";
-    if (userLocation) {
-        moveToLocation(userLocation[0], userLocation[1]);
-        fetchLabs(userLocation[0], userLocation[1]);
-    } else {
-        alert("User location not available");
-    }
-});
-document.getElementById("labBtn2").addEventListener("click", function () {
-    window.currentPlaceType = "Lab";
-    if (userLocation) {
-        moveToLocation(userLocation[0], userLocation[1]);
-        fetchLabs(userLocation[0], userLocation[1]);
-    } else {
-        alert("User location not available");
-    }
-});
-document.getElementById("hospitalBtn").addEventListener("click", function () {
-    window.currentPlaceType = "Hospital";
-    if (userLocation) {
-        moveToLocation(userLocation[0], userLocation[1]);
-        fetchHospitals(userLocation[0], userLocation[1]);
-    } else {
-        alert("User location not available");
-    }
-});
-document.getElementById("hospitalBtn2").addEventListener("click", function () {
-    window.currentPlaceType = "Hospital";
-    if (userLocation) {
-        moveToLocation(userLocation[0], userLocation[1]);
-        fetchHospitals(userLocation[0], userLocation[1]);
-    } else {
-        alert("User location not available");
-    }
-});
-document.getElementById("pharmacyBtn").addEventListener("click", function () {
-    window.currentPlaceType = "Pharmacy";
-    if (userLocation) {
-        moveToLocation(userLocation[0], userLocation[1]);
-        fetchPharmacies(userLocation[0], userLocation[1]);
-    } else {
-        alert("User location not available");
-    }
-});
-document.getElementById("pharmacyBtn2").addEventListener("click", function () {
-    window.currentPlaceType = "Pharmacy";
-    if (userLocation) {
-        moveToLocation(userLocation[0], userLocation[1]);
-        fetchPharmacies(userLocation[0], userLocation[1]);
-    } else {
-        alert("User location not available");
-    }
-});
-document.getElementById("doctorBtn").addEventListener("click", function () {
-    window.currentPlaceType = "Doctor"
-    if (userLocation) {
-        moveToLocation(userLocation[0], userLocation[1]);
-        fetchDoctors(userLocation[0], userLocation[1]);
-    } else {
-        alert("User location not available");
-    }
-});
-document.getElementById("doctorBtn2").addEventListener("click", function () {
-    window.currentPlaceType = "Doctor"
-    if (userLocation) {
-        moveToLocation(userLocation[0], userLocation[1]);
-        fetchDoctors(userLocation[0], userLocation[1]);
-    } else {
-        alert("User location not available");
-    }
-});
-function fetchLabs(lat, lon) {
-    clearMarkers();
 
-    if (locationCache.labs) {
-        console.log("Using cached lab data 🗄️");
-        plotCachedLocations(locationCache.labs, getIconForType("Lab"), "Lab");
-        populateLeftSidebarFromCache("Lab");
-        return;
-    }
-
-    const query = `
-        [out:json];
-        (
-            node["amenity"="laboratory"](around:5000,${lat},${lon});
-            node["amenity"="medical_laboratory"](around:5000,${lat},${lon});
-            node["healthcare"="laboratory"](around:5000,${lat},${lon});
-            node["healthcare"="sample_collection"](around:5000,${lat},${lon});
-            node["healthcare_speciality"="blood_check"](around:5000,${lat},${lon});
-            node["healthcare_speciality"="clinical_pathology"](around:5000,${lat},${lon});
-            node["healthcare_speciality"="pathology"](around:5000,${lat},${lon});
-        );
-        out;
-    `;
-    executeOverpassQuery(query, "Lab"),
-    executeDBQuery("Lab", lat, lon)
-
-    if (locationCache.labs) {
-        plotCachedLocations(locationCache.labs, getIconForType("Lab"), "Lab");
-        populateLeftSidebarFromCache("Lab");
-    } else {
-        console.warn("No labs found in cache after queries.");
-    }
+function setupPlaceButton(buttonId, placeType) {
+    document.getElementById(buttonId).addEventListener("click", () => {
+        window.currentPlaceType = placeType;
+        if (userLocation) {
+            moveToLocation(userLocation[0], userLocation[1]);
+            fetchPlaceData(placeType, userLocation[0], userLocation[1]);
+        } else {
+            alert("User location not available");
+        }
+    });
 }
-function fetchHospitals(lat, lon) {
+["hospitalBtn", "hospitalBtn2"].forEach(id => setupPlaceButton(id, "Hospital"));
+["labBtn", "labBtn2"].forEach(id => setupPlaceButton(id, "Lab"));
+["pharmacyBtn", "pharmacyBtn2"].forEach(id => setupPlaceButton(id, "Pharmacy"));
+["doctorBtn", "doctorBtn2"].forEach(id => setupPlaceButton(id, "Doctor"));
+
+function fetchPlaceData(type, lat, lon) {
     clearMarkers();
-
-    if (locationCache.hospitals) {
-        console.log("Using cached hospital data 🗄️");
-        plotCachedLocations(locationCache.hospitals, getIconForType("Hospital"), "Hospital");
-        populateLeftSidebarFromCache("Hospital");
-        return;
+    switch (type) {
+        case "Hospital": cacheKey = "hospitals"; break;
+        case "Lab": cacheKey = "labs"; break;
+        case "Pharmacy": cacheKey = "pharmacies"; break;
+        case "Doctor": cacheKey = "doctors"; break;
     }
 
-    const query = `
-        [out:json];
-        (
-            node["amenity"="hospital"](around:5000,${lat},${lon});
-            node["healthcare"="hospital"](around:5000,${lat},${lon});
-            node["building"="hospital"](around:5000,${lat},${lon});
-        );
-        out;
-    `;
-
-    executeOverpassQuery(query, "Hospital"),
-    executeDBQuery("Hospital", lat, lon)
-
-
-    if (locationCache.hospitals) {
-        plotCachedLocations(locationCache.hospitals, getIconForType("Hospital"), "Hospital");
-        populateLeftSidebarFromCache("Hospital");
+    if (locationCache[cacheKey]) {
+        console.log("Using cached data 🗄️");
+        populateLeftSidebarFromCache(type);
+        plotCachedLocations(locationCache[cacheKey], getIconForType(type), type);
+        // return;
     } else {
-        console.warn("No hospitals found in cache after queries.");
+    const query = getOverpassQueryForType(type);
+    executeOverpassQuery(query, type),
+    executeDBQuery(type, lat, lon)
     }
+    // if (locationCache[cacheKey]) {
+    //     plotCachedLocations(locationCache[cacheKey], getIconForType(type), type);
+    //     populateLeftSidebarFromCache(type);
+    // } else {
+    //     console.warn("No {type} found in cache after queries.");
+    // }
 }
-function fetchDoctors(lat, lon) {
-    clearMarkers();
-
-    if (locationCache.doctors) {
-        console.log("Using cached doctor data 🗄️");
-        plotCachedLocations(locationCache.doctors, getIconForType("Doctors"), "Doctor");
-        populateLeftSidebarFromCache("Doctor");
-        return;
-    }
-
-    const query = `
-        [out:json];
-        (
-            node["amenity"="doctors"](around:5000,${lat},${lon});
-            node["amenity"="clinic"](around:5000,${lat},${lon});
-            node["healthcare"="clinic"](around:5000,${lat},${lon});
-            node["healthcare"="doctor"](around:5000,${lat},${lon});
-        );
-        out;
-    `;
-
-    executeOverpassQuery(query, "Doctors"),
-    executeDBQuery("Doctors", lat, lon)
-
-    if (locationCache.doctors) {
-        plotCachedLocations(locationCache.doctors, getIconForType("Doctors"), "Doctor");
-        populateLeftSidebarFromCache("Doctor");
-    } else {
-        console.warn("No doctors found in cache after queries.");
-    }
-}
-function fetchPharmacies(lat, lon) {
-    clearMarkers();
-
-    if (locationCache.pharmacies) {
-        console.log("Using cached pharmacy data 🗄️");
-        plotCachedLocations(locationCache.pharmacies, getIconForType("Pharmacy"), "Pharmacy");
-        populateLeftSidebarFromCache("Pharmacy");
-        return;
-    }
-
-    const query = `
-        [out:json];
-        (
-            node["amenity"="pharmacy"](around:5000,${lat},${lon});
-            node["healthcare"="pharmacy"](around:5000,${lat},${lon});
-            node["pharmacy"="yes"](around:5000,${lat},${lon});
-            node["shop"="chemist"](around:5000,${lat},${lon});
-            node["shop"="medical_supply"](around:5000,${lat},${lon});
-            node["office"="medical"](around:5000,${lat},${lon});
-        );
-        out;
-    `;
-
-    executeOverpassQuery(query, "Pharmacy"),
-    executeDBQuery("Pharmacy", lat, lon)
-
-
-    if (locationCache.pharmacies) {
-        plotCachedLocations(locationCache.pharmacies, getIconForType("Pharmacy"), "Pharmacy");
-        populateLeftSidebarFromCache("Pharmacy");
-    } else {
-        console.warn("No pharmacies found in cache after queries.");
-    }
+function getOverpassQueryForType(type) {
+    const queries = {
+        "Hospital": `
+            [out:json];
+            (
+                node["amenity"="hospital"](around:5000,${userLocation[0]},${userLocation[1]});
+                node["healthcare"="hospital"](around:5000,${userLocation[0]},${userLocation[1]});
+                node["building"="hospital"](around:5000,${userLocation[0]},${userLocation[1]});
+            ); out;
+        `,
+        "Lab": `
+            [out:json];
+            (
+                node["amenity"="laboratory"](around:5000,${userLocation[0]},${userLocation[1]});
+                node["amenity"="medical_laboratory"](around:5000,${userLocation[0]},${userLocation[1]});
+                node["healthcare"="laboratory"](around:5000,${userLocation[0]},${userLocation[1]});
+                node["healthcare"="sample_collection"](around:5000,${userLocation[0]},${userLocation[1]});
+                node["healthcare_speciality"="blood_check"](around:5000,${userLocation[0]},${userLocation[1]});
+                node["healthcare_speciality"="clinical_pathology"](around:5000,${userLocation[0]},${userLocation[1]});
+                node["healthcare_speciality"="pathology"](around:5000,${userLocation[0]},${userLocation[1]});
+            ); out;
+        `,
+        "Doctor": `
+            [out:json];
+            (
+                node["amenity"="doctors"](around:5000,${userLocation[0]},${userLocation[1]});
+                node["amenity"="clinic"](around:5000,${userLocation[0]},${userLocation[1]});
+                node["healthcare"="clinic"](around:5000,${userLocation[0]},${userLocation[1]});
+                node["healthcare"="doctor"](around:5000,${userLocation[0]},${userLocation[1]});
+            ); out;
+        `,
+        "Pharmacy": `
+            [out:json];
+            (
+                node["amenity"="pharmacy"](around:5000,${userLocation[0]},${userLocation[1]});
+                node["healthcare"="pharmacy"](around:5000,${userLocation[0]},${userLocation[1]});
+                node["pharmacy"="yes"](around:5000,${userLocation[0]},${userLocation[1]});
+                node["shop"="chemist"](around:5000,${userLocation[0]},${userLocation[1]});
+                node["shop"="medical_supply"](around:5000,${userLocation[0]},${userLocation[1]});
+                node["office"="medical"](around:5000,${userLocation[0]},${userLocation[1]});
+            ); out;
+        `
+    };
+    return queries[type];
 }
 function executeOverpassQuery(query, placeType, plot=true) {
     const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
@@ -610,14 +497,11 @@ function executeOverpassQuery(query, placeType, plot=true) {
                 alert(`No ${placeType}s found nearby.`);
                 return;
             }
-            // Store in cache based on placeType
-            if (placeType === "Hospital") locationCache.hospitals = osmData.elements;
-            else if (placeType === "Lab") locationCache.labs = osmData.elements;
-            else if (placeType === "Pharmacy") locationCache.pharmacies = osmData.elements;
-            else if (placeType === "Doctors") locationCache.doctors = osmData.elements;
-
+            let key = (placeType === "Pharmacy") ? "pharmacies" : placeType.toLowerCase() + "s";
+            locationCache[key] = (locationCache[key] || []).concat(osmData.elements);
             if (plot){
-            plotCachedLocations(osmData.elements, getIconForType(placeType), placeType);
+                populateLeftSidebarFromCache(placeType);
+                plotCachedLocations(osmData.elements, getIconForType(placeType), placeType);
             }
         })
         .catch(err => console.error(`❌ ${placeType} fetch error:`, err));
@@ -626,18 +510,10 @@ function executeDBQuery(locationType, lat, lon, plot=true) {
     let endpoint = "";
     // Choose the correct endpoint based on the locationType.
     switch (locationType) {
-        case "Pharmacy":
-            endpoint = "/api/pharmacies/";
-            break;
-        case "Hospital":
-            endpoint = "/api/hospitals/";
-            break;
-        case "Doctors":
-            endpoint = "/api/doctors/";
-            break;
-        case "Lab":
-            endpoint = "/api/labs/";
-            break;
+        case "Pharmacy": endpoint = "/api/pharmacies/"; break;
+        case "Hospital": endpoint = "/api/hospitals/"; break;
+        case "Doctor": endpoint = "/api/doctors/"; break;
+        case "Lab": endpoint = "/api/labs/"; break;
         default:
             console.error("Unknown location type:", locationType);
             return;
@@ -646,7 +522,7 @@ function executeDBQuery(locationType, lat, lon, plot=true) {
     fetch(`${endpoint}?lat=${lat}&lon=${lon}`)
         .then(response => response.json())
         .then(data => {
-            let key = locationType.toLowerCase() + "s";
+            let key = (locationType === "Pharmacy") ? "pharmacies" : locationType.toLowerCase()+"s";
             let items = data[key] || [];
             // Normalize to match Overpass format
             let formattedItems = items.map(item => ({
@@ -666,6 +542,7 @@ function executeDBQuery(locationType, lat, lon, plot=true) {
                 console.log(`DB ${locationType} data:`, data[key]);
                 if (plot){
                 // Plot these DB markers using your generic plotting function.
+                populateLeftSidebarFromCache(locationType);
                 plotCachedLocations(data[key], getIconForType(locationType), locationType);
                 }
             } else {
@@ -997,7 +874,7 @@ function closeSidebar() {
         sourceMarker = null;
     }
     clearMarkers();
-    initializeUserLocation();
+    // initializeUserLocation();
     document.getElementById("route-info").innerHTML = ""; 
 }
 function showLeftSidebar(title) {
@@ -1013,6 +890,9 @@ function showLeftSidebar(title) {
     } else if (title.includes("Saved Locations")) {
         formatDataButton.textContent = "Clear Saved Locations";
         formatDataButton.setAttribute("data-action", "clear-saved");
+    } else if (title.includes("Hospital near you") || title.includes("Lab near you") || title.includes("Pharmacy near you") || title.includes("Doctor near you")) {
+        formatDataButton.textContent = "Sort by Distance";
+        formatDataButton.setAttribute("data-action", "sort-distance");
     }
 }
 function closeLeftSidebar() {
@@ -1061,6 +941,7 @@ function populateLeftSidebarFromCache(locationType) {
                         // Set the sidebar title.
                         let sidebarTitle = document.getElementById("leftSidebarTitle");
                         sidebarTitle.textContent = locationType + " near you";
+                        showLeftSidebar(locationType + " near you");
                         
                         // Clear and populate the sidebar list.
                         let sidebarList = document.getElementById("leftSidebarList");
@@ -1084,7 +965,7 @@ function populateLeftSidebarFromCache(locationType) {
                         }
                         
                         // Show the left sidebar (it should overlay the navRibbon due to its high z-index).
-                        document.getElementById("leftSidebar").classList.add("left-sidebar-visible");
+                        // document.getElementById("leftSidebar").classList.add("left-sidebar-visible");
 }
 document.getElementById("formatData").addEventListener("click", function() {
     let action = this.getAttribute("data-action");
@@ -1093,5 +974,22 @@ document.getElementById("formatData").addEventListener("click", function() {
         clearSearchHistory();
     } else if (action === "clear-saved") {
         clearSavedLocations();
+    } else if (action === "sort-distance") {
+        sortDistance();
     }
 });
+
+function sortDistance() {
+    console.log("Sorting by distance...")
+    // let sidebarList = document.getElementById("leftSidebarList");
+    // let items = Array.from(sidebarList.children);
+    // items.sort((a, b) => {
+    //     let latA = parseFloat(a.dataset.lat);
+    //     let lonA = parseFloat(a.dataset.lon);
+    //     let latB = parseFloat(b.dataset.lat);
+    //     let lonB = parseFloat(b.dataset.lon);
+    //     return getDistance(userLocation[0], userLocation[1], latA, lonA) - getDistance(userLocation[0], userLocation[1], latB, lonB);
+    // });
+    // sidebarList.innerHTML = ""; // Clear existing items
+    // items.forEach(item => sidebarList.appendChild(item)); // Append sorted items
+}

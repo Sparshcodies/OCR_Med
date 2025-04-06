@@ -157,7 +157,7 @@
             color: #555;
         }
         
-        #getDirection, #closeSidebar {
+        #getDirection {
             margin-top: 10px;
             padding: 8px;
             width: 100%;
@@ -179,10 +179,11 @@
         }
         #closeSidebar {
             position: absolute;
-            bottom: 20px;  /* Adjust as needed */
-            left: 20px;
-            right: 20px;
-            background: #ff4d4d;
+            top: 20px;      /* distance from the top edge */
+            right: 20px;    /* distance from the right edge */
+            bottom: auto;   /* cancel the bottom setting */
+            left: auto;     /* cancel the left setting */
+            background: rgba(243, 97, 97, 0.85);
             color: white;
             padding: 10px;
             border: none;
@@ -202,7 +203,7 @@
         /* Style for input boxes (source and destination) */
         #sourceLocation, 
         #destinationLocation {
-            width: 100%;
+            width: 90%;
             padding: 8px 10px;
             margin: 5px 0 10px 0;
             border: 1px solid #ccc;
@@ -211,7 +212,7 @@
         }
         /* Route Info - only this area scrolls vertically */
         #route-info {
-            max-height: 300px; /* Adjust the height as needed */
+            max-height: 250px; /* Adjust the height as needed */
             overflow-y: auto;
             border: 1px solid #ddd;
             padding: 10px;
@@ -244,10 +245,11 @@
         /* Close button styling for left sidebar */
         #closeLeftSidebar {
             position: absolute;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
-            background: #ff4d4d;
+            top: 20px;      /* distance from the top edge */
+            right: 20px;    /* distance from the right edge */
+            bottom: auto;   /* cancel the bottom setting */
+            left: auto;     /* cancel the left setting */
+            background: rgba(243, 97, 97, 0.85);
             color: white;
             padding: 10px;
             border: none;
@@ -257,7 +259,7 @@
         }
 
         #closeLeftSidebar:hover {
-            background: #e04343;
+            background: rgba(220, 66, 66, 0.95);
         }
 
         /* Hide navRibbon when left sidebar is open
@@ -296,7 +298,9 @@
         /* Style for list items in the left sidebar */
         #leftSidebarList > div,
         .saved-location-item {
+        width: 95%;
         padding: 12px 15px;
+        margin-top: auto;
         margin-bottom: 10px;
         background-color: #f9f9f9;
         border: 1px solid #ddd;

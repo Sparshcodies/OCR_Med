@@ -205,5 +205,10 @@ def get_filtered_locations(request, model):
         for loc in locations
         if haversine(lat, lon, loc.latitude, loc.longitude) <= 5000
     ]
-    
-    return JsonResponse({f"{model.__name__.lower()}s": filtered_data})
+    plural = model.__name__.lower()
+    if plural == "pharmacy":
+        plural = "pharmacies"
+    else:
+        plural += "s"
+
+    return JsonResponse({plural: filtered_data})
