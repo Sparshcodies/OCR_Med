@@ -29,7 +29,6 @@ function clearLocationCache() {
     locationCache.pharmacies = null;
     locationCache.doctors = null;
 }
-
 // Custom Icons
 const defaultIcon = L.icon({
     iconUrl: '/static/elements/penguin.svg',
@@ -72,12 +71,11 @@ let map = L.map('map',{
         [3.0, 65.0],
         [40.0, 100.0] 
     ]}).setView([20.5937, 78.9629], 5);
-// Add Map Tiles
+
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
-// Initialize User Location
 initializeUserLocation();
 function initializeUserLocation() {
     if (navigator.geolocation) {
@@ -311,10 +309,6 @@ function clearSavedLocations() {
         }
     });
 }
-document.getElementById("recentSearchesBtn").addEventListener("click", function() {
-    showLeftSidebar("Your Search History");
-    showSearchHistory();
-});
 function showSearchHistory() {
     fetch('/get_recent_searches/')
     .then(response => response.json())
@@ -392,6 +386,49 @@ function setupPlaceButton(buttonId, placeType) {
 ["labBtn", "labBtn2"].forEach(id => setupPlaceButton(id, "Lab"));
 ["pharmacyBtn", "pharmacyBtn2"].forEach(id => setupPlaceButton(id, "Pharmacy"));
 ["doctorBtn", "doctorBtn2"].forEach(id => setupPlaceButton(id, "Doctor"));
+
+document.addEventListener("DOMContentLoaded", function () {
+    setupSourceLocationAutocomplete("sourceLocation", "sourceAutocompleteList", true);
+    setupDestinationAutocomplete("destinationLocation", "destinationAutocompleteList");
+    let closeSidebarBtn = document.getElementById("closeSidebar");
+    closeSidebarBtn.onclick = closeSidebar;
+    document.getElementById("closeLeftSidebar").addEventListener("click", closeLeftSidebar);
+    // Add event listeners for our three new sort buttons
+    document.getElementById("sortByName").addEventListener("click", function() {
+        toggleSortOrder(this);
+        sortByName(this.getAttribute("data-asc") === "true");
+    });
+    document.getElementById("sortByDistance").addEventListener("click", function() {
+        toggleSortOrder(this);
+        sortbyDistance(this.getAttribute("data-asc") === "true");
+    });
+    document.getElementById("sortByOpen").addEventListener("click", function() {
+        toggleSortOrder(this);
+        sortByOpeningHours(this.getAttribute("data-asc") === "true");
+    });
+    document.getElementById("formatData").addEventListener("click", function() {
+        let action = this.getAttribute("data-action");
+        if (action === "clear-history") {
+            clearSearchHistory();
+        } else if (action === "clear-saved") {
+            clearSavedLocations();
+        } else if (action === "sort") {
+            dynamicSort(this);
+        }
+    });
+    document.getElementById("resetBtn").addEventListener("click", function () {
+        clearMarkers();
+        initializeUserLocation();
+        if (typeof closeSidebar === "function") {
+            closeSidebar();
+        }
+    });
+    document.getElementById("recentSearchesBtn").addEventListener("click", function() {
+        showLeftSidebar("Your Search History");
+        showSearchHistory();
+    });
+});
+
 function fetchPlaceData(type, lat, lon) {
     clearMarkers();
     switch (type) {
@@ -514,13 +551,6 @@ function executeDBQuery(locationType, lat, lon, plot=true) {
         })
         .catch(err => console.error(`Error fetching ${locationType} from DB:`, err));
 }
-document.getElementById("resetBtn").addEventListener("click", function () {
-    clearMarkers();
-    initializeUserLocation();
-    if (typeof closeSidebar === "function") {
-        closeSidebar();
-    }
-});
 function placeMarkerAndMove(lat, lon) {
     clearLocationCache();
     lat = parseFloat(lat);
@@ -651,8 +681,7 @@ function getCSRFToken() {
     }
     return cookieValue;
 }
-function populateLeftSidebarFromCache(locationType) {
-    // Determine the cache key from the location type.
+function populateLeftSidebarFromCache(locationType, sortedResults=false) {
     let cacheKey = "";
     switch(locationType) {
         case "Pharmacy": cacheKey = "pharmacies"; break;
@@ -668,19 +697,22 @@ function populateLeftSidebarFromCache(locationType) {
     // Clear and populate the sidebar list.
     let sidebarList = document.getElementById("leftSidebarList");
     sidebarList.innerHTML = "";
-    let results = locationCache[cacheKey];
+
+    let results = sortedResults ? sortedResults : locationCache[cacheKey];
     if (!results || results.length === 0) {
         sidebarList.innerHTML = `<p style="padding:10px;">No ${locationType} found near you.</p>`;
     } else {
         results.forEach(result => {
             let name = (result.tags && result.tags.name) ? result.tags.name : (result.name || locationType);
-            let item = document.createElement("div");
             let openingHours = result.tags?.opening_hours;
-            let status = openingHours ? (isOpenNow(openingHours) ? "🟢 Open Now" : "🔴 Closed") : "";
+            let status = openingHours ? (isOpenNow(openingHours) ? "🟢 Open Now" : "🔴 Closed") : "❓Hours Unknown";
+            let distKm = result.distance ? `${result.distance.toFixed(2)} km away` : "";
+            let item = document.createElement("div");
+
             item.textContent = `${name} ${status}`;
+            item.innerHTML = `<strong>${name}</strong><br><span style="font-size: 0.9em;">${status} • ${distKm ? "" + distKm : ""}</span>`;
             item.style.cursor = "pointer";
             item.addEventListener("click", function() {
-                closeLeftSidebar();
                 let address = result.address ? result.address : `Lat: ${result.lat}, Lon: ${result.lon}`;
                 showSidebar(name, address, result.lat, result.lon);
             });
@@ -688,11 +720,6 @@ function populateLeftSidebarFromCache(locationType) {
         });
     }
 }
-
-document.addEventListener("DOMContentLoaded", function () {
-    setupSourceLocationAutocomplete("sourceLocation", "sourceAutocompleteList", true);
-    setupDestinationAutocomplete("destinationLocation", "destinationAutocompleteList");
-});
 function setupSourceLocationAutocomplete(inputId, autocompleteListId, isSource) {
     const input = document.getElementById(inputId);
     const autocompleteList = document.getElementById(autocompleteListId);
@@ -776,13 +803,6 @@ function setupDestinationAutocomplete(inputId, autocompleteListId) {
         }
     });
 }
-document.addEventListener("DOMContentLoaded", function () {
-    let closeSidebarBtn = document.getElementById("closeSidebar");
-    closeSidebarBtn.onclick = closeSidebar;
-});
-document.addEventListener("DOMContentLoaded", function() {
-    document.getElementById("closeLeftSidebar").addEventListener("click", closeLeftSidebar);
-});
 function showSidebar(name, description, lat, lon) {
     closeLeftSidebar()
     let sidebar = document.getElementById("sidebar");
@@ -812,12 +832,26 @@ function showSidebar(name, description, lat, lon) {
         }
     }
     let getDirectionBtn = document.getElementById("getDirection");
-    getDirectionBtn.onclick = function() {
+    getDirectionBtn.onclick = function () {
         if (!sourceMarker || !destinationMarker) {
             alert("Please select both a source and a destination.");
             return;
         }
-        getDirections(destinationMarker.getLatLng().lat, destinationMarker.getLatLng().lng);
+    
+        const source = sourceMarker.getLatLng();
+        const dest = destinationMarker.getLatLng();
+    
+        // Basic mobile browser detection
+        const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+    
+        if (isMobile) {
+            // Redirect to navigation screen with query parameters
+            const url = `/navigation/?src_lat=${source.lat}&src_lng=${source.lng}&dest_lat=${dest.lat}&dest_lng=${dest.lng}`;
+            window.location.href = url;
+        } else {
+            // fallback to in-page route drawing
+            getDirections(dest.lat, dest.lng);
+        }
     };
     sidebar.classList.add("sidebar-visible");
     saveSearchHistory(name, description, lat, lon);
@@ -836,50 +870,43 @@ function closeSidebar() {
     clearMarkers();
     document.getElementById("route-info").innerHTML = ""; 
 }
-function dynamicSort(button) {
-    let idx = parseInt(button.dataset.sortIndex, 10) || 0;
-    idx = (idx + 1) % SORT_MODES.length;
-    button.dataset.sortIndex = idx;
-    const mode = SORT_MODES[idx];
-    button.textContent = `Sort by: ${mode}`;
-    if (mode === "Distance") {
-        sortDistance();
-    } else if (mode === "Opening") {
-        sortByOpeningHours();
-    } else {
-        defaultSort();
+// Helper to toggle the data-asc attribute and change button text (arrow up/down)
+function toggleSortOrder(button) {
+    let isAsc = button.getAttribute("data-asc") === "true";
+    isAsc = !isAsc;
+    button.setAttribute("data-asc", isAsc.toString());
+    let txt = button.textContent;
+    if (txt.endsWith("↑")) {
+        button.textContent = txt.replace("↑", "↓");
+    } else if (txt.endsWith("↓")) {
+        button.textContent = txt.replace("↓", "↑");
     }
 }
-document.getElementById("formatData").addEventListener("click", function() {
-    let action = this.getAttribute("data-action");
-    if (action === "clear-history") {
-        clearSearchHistory();
-    } else if (action === "clear-saved") {
-        clearSavedLocations();
-    } else if (action === "sort") {
-        dynamicSort(this);
-    }
-});
 function showLeftSidebar(title) {
     closeSidebar()
-    document.getElementById("leftSidebarTitle").textContent = title;
-    document.getElementById("leftSidebar").classList.add("left-sidebar-visible");
-
+    let leftSidebarTitle = document.getElementById("leftSidebarTitle");
+    let leftSidebar = document.getElementById("leftSidebar");
+    let sortButtonsContainer = document.getElementById("sortButtonsContainer");
     let formatDataButton = document.getElementById("formatData");
 
+    leftSidebarTitle.textContent = title;
+    leftSidebar.classList.add("left-sidebar-visible")
+
     if (title.includes("Search History")) {
+        sortButtonsContainer.style.display = "none";
+        formatDataButton.style.display = "block";
         formatDataButton.textContent = "Clear Search History";
         formatDataButton.setAttribute("data-action", "clear-history");
-        formatDataButton.removeAttribute("data-sort-index");
     } else if (title.includes("Saved Locations")) {
+        sortButtonsContainer.style.display = "none";
+        formatDataButton.style.display = "block";
         formatDataButton.textContent = "Clear Saved Locations";
         formatDataButton.setAttribute("data-action", "clear-saved");
-        formatDataButton.removeAttribute("data-sort-index");
     } else if (title.includes("Hospital near you") || title.includes("Lab near you") || title.includes("Pharmacy near you") || title.includes("Doctor near you")) {
-        formatDataButton.textContent = "Sort by: Default";
-        formatDataButton.setAttribute("data-action", "sort");
-        formatDataButton.setAttribute("data-sort-index", "0");
-
+        // Show our three sort buttons
+        sortButtonsContainer.style.display = "flex";
+        // Hide the formatData button for these particular views
+        formatDataButton.style.display = "none";
     }
 }
 function closeLeftSidebar() {
@@ -887,39 +914,48 @@ function closeLeftSidebar() {
     clearMarkers();
     leftSidebar.classList.remove("left-sidebar-visible");
 }
-function sortDistance() {
-    const type = window.currentPlaceType;
-    if (!type) return;
-    const key = type === "Pharmacy" ? "pharmacies" : type.toLowerCase() + "s";
-    const list = locationCache[key] || [];
-    const enriched = list.map(loc => ({...loc,
+function sortByName(ascending) {
+    const locationType  = window.currentPlaceType;
+    if (!locationType ) return;
+    const cacheKey  = (locationType === "Pharmacy") ? "pharmacies" : locationType.toLowerCase() + "s";
+    const list   = locationCache[cacheKey] || [];
+
+    // Sort by the name field in loc.tags
+    const sorted = [...list].sort((a, b) => {
+        const nameA = a.tags?.name?.toLowerCase() || "";
+        const nameB = b.tags?.name?.toLowerCase() || "";
+        if (nameA < nameB) return ascending ? -1 : 1;
+        if (nameA > nameB) return ascending ? 1 : -1;
+        return 0;
+    });
+
+    // Now populate the left sidebar
+    populateLeftSidebarFromCache(locationType , sorted);
+    clearMarkers();
+    plotCachedLocations(sorted, getIconForType(locationType), locationType);
+}
+function sortbyDistance(ascending) {
+    const locationType  = window.currentPlaceType;
+    if (!locationType ) return;
+    const cacheKey  = (locationType  === "Pharmacy") ? "pharmacies" : locationType .toLowerCase() + "s";
+    const list = locationCache[cacheKey ] || [];
+    const enriched = list.map(loc => ({
+        ...loc,
         distance: getDistance(
-        userLocation[0], userLocation[1],
-        loc.lat, loc.lon
+            userLocation[0], userLocation[1],
+            loc.lat, loc.lon
         )
     }));
-    enriched.sort((a, b) => a.distance - b.distance);
-    const container = document.getElementById("leftSidebarList");
-    container.innerHTML = "";
-    enriched.forEach(loc => {
-    const name = loc.tags?.name || type;
-    const distKm = loc.distance.toFixed(2);
-    const item = document.createElement("div");
-    item.textContent = `${name} — ${distKm} km`;
-    item.style.cursor = "pointer";
-    item.dataset.lat = loc.lat;
-    item.dataset.lon = loc.lon;
-    item.addEventListener("click", () => {
-        closeLeftSidebar();
-        showSidebar(
-        name,
-        loc.address || `Lat: ${loc.lat}, Lon: ${loc.lon}`,
-        loc.lat,
-        loc.lon
-        );
+    enriched.sort((a, b) => {
+        if (ascending) {
+            return a.distance - b.distance;
+        } else {
+            return b.distance - a.distance;
+        }
     });
-    container.appendChild(item);
-    });
+    populateLeftSidebarFromCache(locationType , enriched);
+    clearMarkers();
+    plotCachedLocations(enriched, getIconForType(locationType), locationType);
 }
 function getDistance(lat1, lon1, lat2, lon2) {
     const R = 6371; // Earth radius in km
@@ -932,45 +968,31 @@ function getDistance(lat1, lon1, lat2, lon2) {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
 }
-function sortByOpeningHours() {
+function sortByOpeningHours(ascending) {
     const type = window.currentPlaceType;
     if (!type) return;
-
-    const key = type === "Pharmacy" ? "pharmacies" : type.toLowerCase() + "s";
+    const key = (type === "Pharmacy") ? "pharmacies" : type.toLowerCase() + "s";
     const list = locationCache[key] || [];
 
     const enriched = list.map(loc => {
         const openingHours = loc.tags?.opening_hours;
-        const hasHours = !!openingHours;
         const isOpen = isOpenNow(openingHours);
-        let status = 2; // 0 = open, 1 = closed, 2 = unknown
-        if (hasHours) status = isOpen ? 0 : 1;
-        return { ...loc, status, isOpen, openingHours };
+        // use status code for easy sorting: 0 open, 1 closed, 2 unknown
+        let status = 2;
+        if (openingHours) status = isOpen ? 0 : 1;
+        return { ...loc, status, isOpen };
     });
-    enriched.sort((a, b) => a.status - b.status);
-    const container = document.getElementById("leftSidebarList");
-    container.innerHTML = "";
-    enriched.forEach(loc => {
-        const name = loc.tags?.name || type;
-        const statusText =
-            loc.status === 2 ? "❓ Hours Unknown" :
-            loc.isOpen ? "🟢 Open Now" : "🔴 Closed";
-        const item = document.createElement("div");
-        item.textContent = `${name} ${statusText}`;
-        item.style.cursor = "pointer";
-        item.dataset.lat = loc.lat;
-        item.dataset.lon = loc.lon;
-        item.addEventListener("click", () => {
-            closeLeftSidebar();
-            showSidebar(
-                name,
-                loc.address || `Lat: ${loc.lat}, Lon: ${loc.lon}`,
-                loc.lat,
-                loc.lon
-            );
-        });
-        container.appendChild(item);
+    // If ascending, open sites come first, unknown last. If descending, reverse.
+    enriched.sort((a, b) => {
+        if (ascending) {
+            return a.status - b.status;
+        } else {
+            return b.status - a.status;
+        }
     });
+    populateLeftSidebarFromCache(type, enriched);
+    clearMarkers();
+    plotCachedLocations(enriched, getIconForType(type), type);
 }
 function isOpenNow(openingHours) {
     if (!openingHours || !openingHours.includes("-")) return false;
@@ -981,8 +1003,4 @@ function isOpenNow(openingHours) {
     const now = new Date();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
     return currentMinutes >= start && currentMinutes <= end;
-}
-function defaultSort() {
-    console.log("Reverting to default order...");
-    populateLeftSidebarFromCache(window.currentPlaceType);
 }

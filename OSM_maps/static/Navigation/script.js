@@ -1,133 +1,159 @@
-// Initialize the map
-const map = L.map('map').setView([20.5937, 78.9629], 6); // Centered at India
+let map, userMarker, destinationMarker, routeGeoJSON, currentStepIndex = 0, routeSteps = [];
 
-// Add OpenStreetMap tiles
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-}).addTo(map);
+function getCoordsFromQuery() {
+  const params = new URLSearchParams(window.location.search);
+  const srcLat = parseFloat(params.get("src_lat"));
+  const srcLng = parseFloat(params.get("src_lng"));
+  const destLat = parseFloat(params.get("dest_lat"));
+  const destLng = parseFloat(params.get("dest_lng"));
+  if (!srcLat || !srcLng || !destLat || !destLng) {
+    alert("Invalid coordinates passed.");
+    return null;
+  }
+  return {
+    source: [srcLng, srcLat],
+    destination: [destLng, destLat],
+  };
+}
+const coords = getCoordsFromQuery();
+if (!coords) throw new Error("Missing source/destination in URL");
 
-// Store the current base location globally
-let currentBaseLocation = [20.5937, 78.9629]; // Default: India
 
-// Function to search for a location and update the map
-function searchLocation() {
-    let location = document.getElementById('locationInput').value.trim(); // Get search input
-    if (!location) return;
+navigator.geolocation.getCurrentPosition(
+  position => {
+    const userLocation = [position.coords.longitude, position.coords.latitude];
+    initialize3DMap(userLocation, coords.destination);
+  },
+  error => {
+    alert("Location access denied. Cannot initialize map.");
+    console.error("Geolocation error:", error);
+  },
+  { enableHighAccuracy: true }
+);
 
-    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${location}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.length > 0) {
-                let lat = parseFloat(data[0].lat);
-                let lon = parseFloat(data[0].lon);
+function initialize3DMap(userLocation, destination) {
+  map = new maplibregl.Map({
+    container: 'map',
+    style: 'https://tiles.openfreemap.org/styles/liberty',
+    center: userLocation,
+    zoom: 17,
+    pitch: 60,
+    bearing: 45,
+    cooperativeGestures: true
+  });
 
-                // Update the map view
-                map.setView([lat, lon], 12);
+  map.addControl(new maplibregl.NavigationControl({ showCompass: false }));
 
-                // Remove old marker if exists
-                if (window.searchMarker) {
-                    map.removeLayer(window.searchMarker);
-                }
+  new maplibregl.Marker({ color: 'blue' })
+    .setLngLat(userLocation)
+    .setPopup(new maplibregl.Popup().setText("You are here"))
+    .addTo(map);
 
-                // Add marker for searched location
-                window.searchMarker = L.marker([lat, lon]).addTo(map)
-                    .bindPopup(`Searched Location: ${location}`)
-                    .openPopup();
+  new maplibregl.Marker({ color: 'red' })
+    .setLngLat(destination)
+    .setPopup(new maplibregl.Popup().setText("Destination"))
+    .addTo(map);
 
-                // Update current base location for future searches (e.g., hospitals)
-                currentBaseLocation = [lat, lon];
-                console.log("New Base Location Set:", currentBaseLocation);
-            } else {
-                alert('Location not found! Try a different search term.');
-            }
-        })
-        .catch(error => console.error('Error:', error));
+  map.on('load', () => {
+    getRoute(userLocation, destination);
+  });
+
+  navigator.geolocation.watchPosition(
+    updateUserLocation,
+    console.error,
+    { enableHighAccuracy: true }
+  );
+
+  window.addEventListener("deviceorientation", rotateCompass);
 }
 
-// Function to find nearby places (e.g., hospitals, pharmacies)
-function findNearbyPlaces(type) {
-    if (!currentBaseLocation) {
-        alert("Please search for a location first.");
-        return;
-    }
-
-    let [lat, lon] = currentBaseLocation;
-    let overpassQuery = `[out:json];node(around:5000, ${lat}, ${lon})["amenity"="${type}"];out;`;
-
-    fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`)
-        .then(response => response.json())
-        .then(data => {
-            if (window.nearbyMarkers) {
-                window.nearbyMarkers.forEach(marker => map.removeLayer(marker));
-            }
-            window.nearbyMarkers = [];
-
-            data.elements.forEach(element => {
-                if (element.lat && element.lon) {
-                    let marker = L.marker([element.lat, element.lon]).addTo(map)
-                        .bindPopup(`Nearby ${type.charAt(0).toUpperCase() + type.slice(1)}`)
-                        .openPopup();
-                    window.nearbyMarkers.push(marker);
-                }
-            });
-
-            if (data.elements.length === 0) {
-                alert(`No nearby ${type} found.`);
-            }
-        })
-        .catch(error => console.error('Error fetching nearby places:', error));
-}
-
-// Event listeners
-document.getElementById('searchBtn').addEventListener('click', searchLocation);
-document.getElementById('hospitalBtn2').addEventListener('click', () => findNearbyPlaces('hospital'));
-document.getElementById('pharmacyBtn2').addEventListener('click', () => findNearbyPlaces('pharmacy'));
-document.getElementById('doctorBtn2').addEventListener('click', () => findNearbyPlaces('doctors'));
-document.getElementById('labBtn2').addEventListener('click', () => findNearbyPlaces('laboratory'));
-let userMarker = null;
-let watchId = null;
-
-// Function to update the user's location
 function updateUserLocation(position) {
-    const lat = position.coords.latitude;
-    const lon = position.coords.longitude;
-
-    // If the marker already exists, update its position
-    if (userMarker) {
-        userMarker.setLatLng([lat, lon]);
-    } else {
-        // Create a marker for the user's location
-        userMarker = L.marker([lat, lon], {
-            icon: L.icon({
-                iconUrl: 'https://leafletjs.com/examples/custom-icons/marker-icon.png', // Change to custom icon if needed
-                iconSize: [25, 41],
-                iconAnchor: [12, 41],
-            })
-        }).addTo(map).bindPopup('Your Current Location').openPopup();
+  const currentLocation = [position.coords.longitude, position.coords.latitude];
+  if (userMarker) {
+    userMarker.setLngLat(currentLocation);
+  }
+  // Check if user is close to next step
+  if (routeSteps.length > 0 && currentStepIndex < routeSteps.length) {
+    const nextStep = routeSteps[currentStepIndex];
+    const dist = turf.distance(turf.point(currentLocation), turf.point(nextStep.location));
+    if (dist < 0.05) { // ~50m
+      currentStepIndex++;
+      updateDirectionUI();
     }
-
-    map.setView([lat, lon]); // Center map on new position
+  }
 }
 
-// Start live tracking
-function startLiveTracking() {
-    if (navigator.geolocation) {
-        watchId = navigator.geolocation.watchPosition(updateUserLocation, 
-            (error) => console.error("Error getting location: ", error),
-            { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
-        );
-    } else {
-        alert("Geolocation is not supported by your browser.");
-    }
+function updateDirectionUI() {
+  const directionBox = document.getElementById("direction");
+  if (currentStepIndex < routeSteps.length) {
+    directionBox.innerText = routeSteps[currentStepIndex].text;
+  } else {
+    directionBox.innerText = "You have arrived!";
+  }
 }
 
-// Stop live tracking
-function stopLiveTracking() {
-    if (watchId !== null) {
-        navigator.geolocation.clearWatch(watchId);
-        watchId = null;
-    }
+function rotateCompass(event) {
+  const alpha = event.alpha || 0;
+  const compassIcon = document.getElementById("compass");
+  compassIcon.style.transform = `rotate(${-alpha}deg)`;
 }
 
-// Start tracking when "Start Navigation" button is clicked
-document.getElementById('getDirection').addEventListener('click', startLiveTracking);
+function getRoute(from, to) {
+  const url = `https://router.project-osrm.org/route/v1/driving/${from[0]},${from[1]};${to[0]},${to[1]}?overview=full&geometries=geojson&steps=true`;
+
+  fetch(url)
+    .then(res => res.json())
+    .then(data => {
+      if (!data.routes || data.routes.length === 0) {
+        document.getElementById("direction").innerText = "No route found.";
+        return;
+      }
+
+      const route = data.routes[0];
+
+      if (!route.legs || route.legs.length === 0 || !route.legs[0].steps) {
+        document.getElementById("direction").innerText = "No directions available.";
+        return;
+      }
+
+      const coords = route.geometry.coordinates;
+
+      // Add route line
+      if (map.getSource('route')) {
+        map.getSource('route').setData({ type: 'Feature', geometry: route.geometry });
+      } else {
+        map.addSource('route', {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            geometry: route.geometry
+          }
+        });
+
+        map.addLayer({
+          id: 'route',
+          type: 'line',
+          source: 'route',
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint: {
+            'line-color': '#3887be',
+            'line-width': 6,
+            'line-opacity': 0.75
+          }
+        });
+      }
+
+      // Parse steps safely
+      routeSteps = route.legs[0].steps.map(step => ({
+        text: step?.maneuver?.instruction || "Continue",
+        location: step?.maneuver?.location || coords[0] // fallback to first coord
+      }));
+
+      currentStepIndex = 0;
+      updateDirectionUI();
+    })
+    .catch(err => {
+      console.error("Routing error:", err);
+      document.getElementById("direction").innerText = "Error fetching route.";
+    });
+}

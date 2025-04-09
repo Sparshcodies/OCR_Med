@@ -218,6 +218,20 @@
             padding: 10px;
             margin-top: 10px;
         }
+        #saveLocationBtn {
+            margin-top: 10px;
+            padding: 8px;
+            width: 100%;
+            border: none;
+            background: #28a745;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        #saveLocationBtn:hover {
+            background: #218838;
+        }
 
         /* Left Sidebar */
         #leftSidebar {
@@ -228,7 +242,6 @@
             height: 100vh;
             background: white;
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3);
-            /* padding: 20px; */
             transition: right 0.3s ease-in-out, opacity 0.3s ease-in-out;
             z-index: 2000;
             overflow-y: auto;
@@ -257,28 +270,26 @@
             cursor: pointer;
             z-index: 2100;
         }
-
         #closeLeftSidebar:hover {
             background: rgba(220, 66, 66, 0.95);
         }
-
-        /* Hide navRibbon when left sidebar is open
-        .nav-hidden {
-            display: none;
-        } */
-        #saveLocationBtn {
+        #sortButtonsContainer {
+            display: flex;
+            gap: 8px;
             margin-top: 10px;
-            padding: 8px;
-            width: 100%;
-            border: none;
-            background: #28a745;
-            color: white;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background 0.3s;
         }
-        #saveLocationBtn:hover {
-            background: #218838;
+        #sortButtonsContainer button {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 5px;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+            transition: background 0.3s ease-in-out;
+        }
+        #sortButtonsContainer button:hover {
+            background: #0056b3;
         }
         #formatData {
             display: block;

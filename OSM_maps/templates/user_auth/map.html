@@ -15,6 +15,13 @@
     <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 
+    <!-- Maplibre GL -->
+    <script src="https://unpkg.com/maplibre-gl/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl/dist/maplibre-gl.css" rel="stylesheet" />
+
+    <!-- Maplibre GL Leaflet  -->
+<script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet/leaflet-maplibre-gl.js"></script>
+
     <!-- Custom Styles -->
     <link rel="stylesheet" href="/static/OSM_maps/style.css">
 
@@ -41,7 +48,13 @@
     <div id="leftSidebar">
         <div id="leftSidebarContent">
             <h2 id="leftSidebarTitle"></h2>
-            <button id="formatData">Clear Data</button>
+            <!-- This container holds the special buttons that replace formatData for sorting. -->
+            <div id="sortButtonsContainer" style="display: none;">
+                <button id="sortByName" data-asc="true">Name ↑</button>
+                <button id="sortByDistance" data-asc="true">Distance ↑</button>
+                <button id="sortByOpen" data-asc="true">Open Now ↑</button>
+            </div>
+            <button id="formatData" style="display: none;">Clear Data</button>
             <div id="leftSidebarList">
                 <!-- Saved Locations or Search History will be listed here -->
             </div>
